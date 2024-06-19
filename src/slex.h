@@ -115,26 +115,22 @@ static int slex_get_end(SlexContext *ctx) {
 #endif
 }
 
-static int slex_pow(int base, int exponent) {
-  int n = 1; 
-  for(int i = 0; i < exponent; i++) {
-    n *= base; 
-  }
-  return n;
-}
-
 /* -- Implementation -- */
 
 static int slex_parse_num(SlexContext *ctx) {
   char *end = ctx->parse_ptr;
+  int fact = -1;
   while(end < ctx->parse_end) {
     if(!slex_is_numeric(*end))
       break;
     end++;
+    if(fact != -1)
+      fact *= 10;
+    else
+      fact = 1;
   }
 
   int len = end - ctx->parse_ptr;
-  int fact = slex_pow(10, len - 1);
   int num = 0;
 
   for(char *it = ctx->parse_ptr; it < end; it++) {
@@ -149,7 +145,6 @@ static int slex_parse_num(SlexContext *ctx) {
 }
 
 static int slex_parse_int_lit(SlexContext *ctx) {
-  // TODO: optimize this func
   ctx->first_tok_char = ctx->parse_ptr;
   ctx->tok_ty = SLEX_TOK_int_lit;
 
@@ -168,17 +163,22 @@ static int slex_parse_int_lit(SlexContext *ctx) {
       return 0;
 
     char *end = ctx->parse_ptr;
+    int fact = -1;
+
     while(end < ctx->parse_end) {
       if(!slex_is_hex(*end))
         break;
       end++;
+      if(fact != -1)
+        fact *= 16;
+      else
+        fact = 1;
     }
 
     int len = end - ctx->parse_ptr;
     if(!len)
       return 0;
 
-    int fact = slex_pow(16, len - 1);
     int hex = 0;
 
     for(char *it = ctx->parse_ptr; it < end; it++) {
@@ -195,14 +195,19 @@ static int slex_parse_int_lit(SlexContext *ctx) {
   // octals
   if(slex_is_numeric(ctx->parse_ptr[1])) {
     char *end = ctx->parse_ptr;
+    int fact = -1;
+
     while(end < ctx->parse_end) {
       if(!slex_is_oct(*end))
         break;
       end++;
+      if(fact != -1)
+        fact *= 8;
+      else
+        fact = 1;
     }
 
     int len = end - ctx->parse_ptr;
-    int fact = slex_pow(8, len - 1);
     int oct = 0;
 
     for(char *it = ctx->parse_ptr; it < end; it++) {
@@ -224,6 +229,9 @@ zero:
 }
 
 static int slex_parse_esc_seq(SlexContext *ctx) {
+  /* TODO: Add support for unicode escape sequences and allow 
+           octs to be larger than 255. */
+
   ctx->parse_ptr++; // skip \
 
   if(ctx->parse_ptr >= ctx->parse_end)
@@ -252,8 +260,6 @@ static int slex_parse_esc_seq(SlexContext *ctx) {
     ctx->parse_ptr += 3;
     return hex;
   }
-
-  // TODO: Unicode constants
 
 other_sequence:
   ctx->parse_ptr++;
