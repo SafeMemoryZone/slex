@@ -10,7 +10,7 @@ A simple C lexer written in C inspired from [stb_c_lexer](https://github.com/not
 
 - Only one header file.
 - No standard lib.
-- No crashes on ill formed input.
+- No crashes on ill-formed input.
 
 ## Example
 
@@ -50,7 +50,7 @@ int main(int argc, char** argv) {
   while(slex_get_next_token(&ctx)){
     // do stuff with tokens
     // ...
-    /* NOTE: if the input is badly formatted, ctx->parse_ptr will
+    /* NOTE: if the input is ill-formed, ctx->parse_ptr will
              point to where the error occured. */
   }
 }
