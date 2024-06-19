@@ -1,12 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define SLEX_IMPLEMENTATION
+/* #define SLEX_IMPLEMENTATION */
 #define SLEX_END_IS_TOKEN 1
 #include "../src/slex.h"
 
 int main(int argc, char **argv) {
-
   SlexContext ctx;
   char store[1024];
 
@@ -26,21 +25,22 @@ int main(int argc, char **argv) {
   slex_init_context(&ctx, text, text + len, store, 1024);
   for(;;){
     if(!slex_get_next_token(&ctx)) {
-      printf("Invalid syntax at '%c'\n", *ctx.parse_ptr);
+      int ln;
+      int col;
+      slex_get_parse_ptr_location(&ctx, text, &ln, &col);
+      printf("Invalid syntax at %d:%d\n", ln, col);
       ctx.parse_ptr++;
       continue;
     }
 
-    if(ctx.tok_ty == SLEX_TOK_eof) {
+    if(ctx.tok_ty == SLEX_TOK_eof) 
       break;
-    }
 
     int len = ctx.last_tok_char - ctx.first_tok_char + 1;
-    printf("%.*s\n", len, ctx.first_tok_char);
+    printf("Parsed token: %.*s\n", len, ctx.first_tok_char);
 
-    if(ctx.tok_ty == SLEX_TOK_str_lit)
+    if(ctx.tok_ty == SLEX_TOK_str_lit || ctx.tok_ty == SLEX_TOK_char_lit)
       printf("Parsed string: %.*s\n", ctx.str_len, ctx.string_store);
 
-    getc(stdin);
   }
 }
