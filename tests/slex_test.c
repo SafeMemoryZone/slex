@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-/* #define SLEX_IMPLEMENTATION */
+#define SLEX_IMPLEMENTATION
 #define SLEX_END_IS_TOKEN 1
 #include "../src/slex.h"
 
@@ -42,5 +42,7 @@ int main(int argc, char **argv) {
     if(ctx.tok_ty == SLEX_TOK_str_lit || ctx.tok_ty == SLEX_TOK_char_lit)
       printf("Parsed string: %.*s\n", ctx.str_len, ctx.string_store);
 
+    else if(ctx.tok_ty == SLEX_TOK_int_lit)
+      printf("Parsed int: %d\n", ctx.parsed_int_lit);
   }
 }

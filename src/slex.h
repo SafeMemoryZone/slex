@@ -4,7 +4,8 @@
 typedef enum {
   SLEX_TOK_eof,
   SLEX_TOK_str_lit,
-  SLEX_TOK_char_lit
+  SLEX_TOK_char_lit,
+  SLEX_TOK_int_lit,
 } TokenType;
 
 typedef struct {
@@ -17,6 +18,7 @@ typedef struct {
   char *first_tok_char;
   char *last_tok_char;
   int str_len;
+  int parsed_int_lit;
 
 } SlexContext;
 
@@ -72,17 +74,21 @@ void slex_get_parse_ptr_location(SlexContext *context, char *stream_begin,
 
 /* -- Helper Functions -- */
 
+static int slex_is_numeric(char c) {
+  return c >= '0' && c <= '9';
+}
+
 static int slex_is_oct(char c) {
   return c >= '0' && c <= '7';
 }
 
 static int slex_is_hex(char c) {
-  return (c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') 
+  return slex_is_numeric(c) || (c >= 'A' && c <= 'F') 
          || (c >= 'a' && c <= 'f');
 }
 
 static int slex_hex_to_int(char c) {
-  if(c >= '0' && c <= '9')
+  if(slex_is_numeric(c))
     return c - '0';
   if(c >= 'A' && c <= 'F')
     return c - 'A' + 10;
@@ -109,7 +115,113 @@ static int slex_get_end(SlexContext *ctx) {
 #endif
 }
 
+static int slex_pow(int base, int exponent) {
+  int n = 1; 
+  for(int i = 0; i < exponent; i++) {
+    n *= base; 
+  }
+  return n;
+}
+
 /* -- Implementation -- */
+
+static int slex_parse_num(SlexContext *ctx) {
+  char *end = ctx->parse_ptr;
+  while(end < ctx->parse_end) {
+    if(!slex_is_numeric(*end))
+      break;
+    end++;
+  }
+
+  int len = end - ctx->parse_ptr;
+  int fact = slex_pow(10, len - 1);
+  int num = 0;
+
+  for(char *it = ctx->parse_ptr; it < end; it++) {
+    num += (*it - '0') * fact;
+    fact /= 10;
+  }
+
+  ctx->parsed_int_lit = num;
+  ctx->parse_ptr = end;
+  ctx->last_tok_char = end - 1;
+  return 1;
+}
+
+static int slex_parse_int_lit(SlexContext *ctx) {
+  // TODO: optimize this func
+  ctx->first_tok_char = ctx->parse_ptr;
+  ctx->tok_ty = SLEX_TOK_int_lit;
+
+  if(*ctx->parse_ptr != '0')
+    return slex_parse_num(ctx);
+
+  // the current char is the last one
+  if(ctx->parse_ptr >= ctx->parse_end - 1)
+    goto zero;
+
+  // hexadecimals
+  if(ctx->parse_ptr[1] == 'x' || ctx->parse_ptr[1] == 'X') {
+    ctx->parse_ptr += 2; // consume 0 and x
+
+    if(ctx->parse_ptr >= ctx->parse_end)
+      return 0;
+
+    char *end = ctx->parse_ptr;
+    while(end < ctx->parse_end) {
+      if(!slex_is_hex(*end))
+        break;
+      end++;
+    }
+
+    int len = end - ctx->parse_ptr;
+    if(!len)
+      return 0;
+
+    int fact = slex_pow(16, len - 1);
+    int hex = 0;
+
+    for(char *it = ctx->parse_ptr; it < end; it++) {
+      hex += slex_hex_to_int(*it) * fact;
+      fact /= 16;
+    }
+
+    ctx->parsed_int_lit = hex;
+    ctx->parse_ptr = end;
+    ctx->last_tok_char = end - 1;
+    return 1;
+  }
+
+  // octals
+  if(slex_is_numeric(ctx->parse_ptr[1])) {
+    char *end = ctx->parse_ptr;
+    while(end < ctx->parse_end) {
+      if(!slex_is_oct(*end))
+        break;
+      end++;
+    }
+
+    int len = end - ctx->parse_ptr;
+    int fact = slex_pow(8, len - 1);
+    int oct = 0;
+
+    for(char *it = ctx->parse_ptr; it < end; it++) {
+      oct += (*it - '0') * fact;
+      fact /= 8;
+    }
+
+    ctx->parsed_int_lit = oct;
+    ctx->parse_ptr = end;
+    ctx->last_tok_char = end - 1;
+    return 1;
+  }
+
+zero:
+  ctx->parsed_int_lit = 0;
+  ctx->last_tok_char = ctx->first_tok_char;
+  ctx->parse_ptr++;
+  return 1;
+}
 
 static int slex_parse_esc_seq(SlexContext *ctx) {
   ctx->parse_ptr++; // skip \
@@ -244,7 +356,7 @@ int slex_get_next_token(SlexContext *ctx) {
   if(ctx->parse_ptr >= ctx->parse_end) 
     return slex_get_end(ctx);
   
-  while(ctx->parse_ptr < ctx->parse_end) {
+  while(ctx->parse_ptr <= ctx->parse_end - 1) {
    if(!slex_is_whitespace(*ctx->parse_ptr)) 
      break;
    ctx->parse_ptr++;
@@ -252,6 +364,9 @@ int slex_get_next_token(SlexContext *ctx) {
 
   if(ctx->parse_ptr >= ctx->parse_end) 
     return slex_get_end(ctx);
+
+  if(slex_is_numeric(*ctx->parse_ptr))
+    return slex_parse_int_lit(ctx);
   
   switch(*ctx->parse_ptr) {
     default: return 0;
