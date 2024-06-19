@@ -18,13 +18,13 @@ A simple C lexer written in C inspired from [stb_c_lexer](https://github.com/not
 #include <stdio.h>
 #include <stdlib.h>
 
-// this macro must be defined in one file(translation unit) 
-// in order to avoid ODR violations.
+/* this macro must be defined in one file(translation unit) 
+   in order to avoid ODR violations. */
 #define SLEX_IMPLEMENTATION
 #include "slex.h"
 
 int main(int argc, char** argv) {
-  // open and read C file 
+  // open and read a sample C file 
   FILE *f = fopen("sample.c", "rb");
   char *text = (char *)malloc(1 << 20);
   int len = f ? (int)fread(text, 1, 1 << 20, f) : -1;
@@ -39,6 +39,9 @@ int main(int argc, char** argv) {
   fclose(f);
 
   SlexContext ctx;
+  /* storage used by the lexer when parsing a 
+     string or char (ex. escape sequences) */
+
   char store[1024];
 
   // initilize lexer
@@ -46,6 +49,9 @@ int main(int argc, char** argv) {
 
   while(slex_get_next_token(&ctx)){
     // do stuff with tokens
+    // ...
+    /* NOTE: if the input is badly formatted, ctx->parse_ptr will
+             point to where the error occured. */
   }
 }
 ```
