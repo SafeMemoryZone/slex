@@ -2,7 +2,6 @@
 #include <stdlib.h>
 
 #define SLEX_IMPLEMENTATION
-#define SLEX_END_IS_TOKEN 1
 #include "../src/slex.h"
 
 int main(int argc, char **argv) {
@@ -29,7 +28,7 @@ int main(int argc, char **argv) {
       int col;
       slex_get_parse_ptr_location(&ctx, text, &ln, &col);
       printf("Invalid syntax at %d:%d\n", ln, col);
-      ctx.parse_ptr++;
+      ctx.parse_point++;
       continue;
     }
 
@@ -43,6 +42,6 @@ int main(int argc, char **argv) {
       printf("Parsed string: %.*s\n", ctx.str_len, ctx.string_store);
 
     else if(ctx.tok_ty == SLEX_TOK_int_lit)
-      printf("Parsed int: %d\n", ctx.parsed_int_lit);
+      printf("Parsed int: %llu\n", ctx.parsed_int_lit);
   }
 }
