@@ -93,7 +93,7 @@ static int slex_hex_to_int(char c) {
 
 static int slex_is_whitespace(char c) {
   return c == ' '  || c == '\t' || c == '\n' || c == '\v' || 
-         c == '\f' || c == '\r';
+    c == '\f' || c == '\r';
 }
 
 static int slex_return_err(SlexContext *ctx) {
@@ -122,7 +122,42 @@ static int slex_add_overflows_u64(unsigned long long a, unsigned long long b) {
   return a > 0xFFFFFFFFFFFFFFFF - b;
 }
 
-/* -- Implementation -- */
+static int slex_utf8_encode_esc_seq(SlexContext *ctx, long long codepoint, char *loc) {
+  if (codepoint > 0x10FFFF || loc >= ctx->string_store + ctx->string_store_len)
+    return slex_return_err(ctx) -1;
+
+  if (codepoint <= 0x7F) {
+    *loc = codepoint;
+    return 1;
+  }
+  else if (codepoint <= 0x7FF) {
+    if (loc >= ctx->string_store + ctx->string_store_len - 1)
+      return slex_return_err(ctx) -1;
+
+    loc[0] = 0xC0 | ((codepoint >> 6) & 0x1F);
+    loc[1] = 0x80 | (codepoint & 0x3F);
+    return 2;
+  }
+  else if (codepoint <= 0xFFFF) {
+    if (loc >= ctx->string_store + ctx->string_store_len - 2)
+      return slex_return_err(ctx) -1;
+
+    loc[0] = 0xE0 | ((codepoint >> 12) & 0x0F);
+    loc[1] = 0x80 | ((codepoint >> 6) & 0x3F);
+    loc[2] = 0x80 | (codepoint & 0x3F);
+    return 3;
+  }
+  else {
+    if (loc >= ctx->string_store + ctx->string_store_len - 3)
+      return slex_return_err(ctx) -1;
+
+    loc[0] = 0xF0 | ((codepoint >> 18) & 0x07);
+    loc[1] = 0x80 | ((codepoint >> 12) & 0x3F);
+    loc[2] = 0x80 | ((codepoint >> 6) & 0x3F);
+    loc[3] = 0x80 | (codepoint & 0x3F);
+    return 4;
+  }
+}
 
 static int slex_parse_num(SlexContext *ctx) {
   char *end = ctx->parse_point;
@@ -201,7 +236,7 @@ static int slex_parse_int_lit(SlexContext *ctx) {
         ctx->parse_point = it;
         return slex_return_err(ctx);
       }
-      hex += slex_hex_to_int(*it) * fact;
+      hex += h;
       fact /= 16;
     }
 
@@ -255,15 +290,10 @@ zero:
 }
 
 static long long slex_parse_esc_seq(SlexContext *ctx) {
-  // TODO: add support for unicode and utf-8 encoding
-
   ctx->parse_point++; // consume \
 
   if(ctx->parse_point >= ctx->stream_end) 
     return slex_return_err(ctx) -1;
-
-  if(ctx->parse_point > ctx->stream_end - 3)
-    goto other_sequence;
 
   if(slex_is_oct(*ctx->parse_point)) {
     char *end = ctx->parse_point;
@@ -290,7 +320,7 @@ static long long slex_parse_esc_seq(SlexContext *ctx) {
   }
 
   if(*ctx->parse_point == 'x') {
-    if(!slex_is_hex(ctx->parse_point[1])) {
+    if(ctx->parse_point > ctx->stream_end - 3 || !slex_is_hex(ctx->parse_point[1])) {
       ctx->parse_point++;
       return slex_return_err(ctx) -1;
     }
@@ -301,6 +331,40 @@ static long long slex_parse_esc_seq(SlexContext *ctx) {
     int hex = slex_hex_to_int(ctx->parse_point[1]) * 16 + slex_hex_to_int(ctx->parse_point[2]); 
     ctx->parse_point += 3;
     return hex;
+  }
+
+  if(*ctx->parse_point == 'u' || *ctx->parse_point == 'U') {
+    int len = *ctx->parse_point == 'u' ? 4 : 8;
+    ctx->parse_point++; // consume u or U
+
+    if(ctx->parse_point >= ctx->stream_end) 
+      return slex_return_err(ctx);
+
+    char *end = ctx->parse_point;
+    long long fact = 0;
+    int i = 0;
+
+    while(end < ctx->stream_end && i < len) {
+      if(!slex_is_hex(*end)) break;
+      end++; i++;
+      if(fact != 0) fact *= 16;
+      else fact = 1;
+    }
+
+    if(i != len) {
+      ctx->parse_point = end;
+      return slex_return_err(ctx) -1;
+    }
+
+    long long codepoint = 0;
+
+    for(char *it = ctx->parse_point; it < end; it++) {
+      codepoint += slex_hex_to_int(*it) * fact;
+      fact /= 16;
+    }
+
+    ctx->parse_point = end;
+    return codepoint;
   }
 
 other_sequence:
@@ -344,13 +408,13 @@ static int slex_parse_char_or_str_lit(SlexContext *ctx) {
     if(*ctx->parse_point == '\\') {
       long long c = slex_parse_esc_seq(ctx);
       if(c == -1) return slex_return_err(ctx);
-      ctx->string_store[curr_str_len] = c;
+      curr_str_len += slex_utf8_encode_esc_seq(ctx, c, ctx->string_store + curr_str_len);
     }
     else {
       ctx->string_store[curr_str_len] = *ctx->parse_point;
       ctx->parse_point++;
+      curr_str_len++;
     }
-    curr_str_len++;
   }
 
   return slex_return_err(ctx);
