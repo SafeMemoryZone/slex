@@ -22,26 +22,27 @@ int main(int argc, char **argv) {
   fclose(f);
 
   slex_init_context(&ctx, text, text + len, store, 1024);
-  for(;;){
-    if(!slex_get_next_token(&ctx)) {
+  for (;;) {
+    if (!slex_get_next_token(&ctx)) {
       int ln;
       int col;
       slex_get_parse_ptr_location(&ctx, text, &ln, &col);
-      printf("Invalid syntax at %d:%d\n", ln, col);
+      printf("- An error occured at %d:%d\n", ln, col);
       ctx.parse_point++;
       continue;
     }
 
-    if(ctx.tok_ty == SLEX_TOK_eof) 
+    if (ctx.tok_ty == SLEX_TOK_eof)
       break;
 
     int len = ctx.last_tok_char - ctx.first_tok_char + 1;
-    printf("Parsed token: %.*s\n", len, ctx.first_tok_char);
+    printf("+ Parsed token: %.*s\n", len, ctx.first_tok_char);
 
-    if(ctx.tok_ty == SLEX_TOK_str_lit || ctx.tok_ty == SLEX_TOK_char_lit)
-      printf("Parsed string: %.*s\n", ctx.str_len, ctx.string_store);
+    if (ctx.tok_ty == SLEX_TOK_str_lit || ctx.tok_ty == SLEX_TOK_char_lit)
+      printf("    Extracted string or char: %.*s\n", ctx.str_len,
+             ctx.string_store);
 
-    else if(ctx.tok_ty == SLEX_TOK_int_lit)
-      printf("Parsed int: %llu\n", ctx.parsed_int_lit);
+    else if (ctx.tok_ty == SLEX_TOK_int_lit)
+      printf("    Extracted int literal: %llu\n", ctx.parsed_int_lit);
   }
 }
