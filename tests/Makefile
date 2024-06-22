@@ -1,12 +1,14 @@
-.PHONY: test_files, test
+.PHONY: clean all
+
+all: test fuzz
 
 fuzz:
-	cc -o slex_fuzz -fsanitize=fuzzer,undefined slex_fuzz.c
-	./slex_fuzz
+	cc -o fuzz -fsanitize=fuzzer,undefined slex_fuzz.c
+	./fuzz
 
 test:
-	cc -o slex_test slex_test.c
-	./slex_test
+	cc -o test slex_test.c
+	./test
 
 clean:
-	rm slex_test slex_fuzz
+	rm test fuzz
