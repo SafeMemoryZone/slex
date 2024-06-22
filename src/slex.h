@@ -7,6 +7,7 @@ typedef enum {
   SLEX_TOK_str_lit,
   SLEX_TOK_char_lit,
   SLEX_TOK_int_lit,
+  SLEX_TOK_ident,
 } TokenType;
 
 typedef struct {
@@ -96,6 +97,11 @@ static int slex_is_whitespace(char c) {
     c == '\f' || c == '\r';
 }
 
+static int slex_is_ident(char c) {
+  return slex_is_numeric(c) || (c >= 'A' && c <= 'Z') ||
+         (c >= 'a' && c <= 'z') || c == '_';
+}
+
 static int slex_return_err(SlexContext *ctx) {
   ctx->last_tok_char = ctx->parse_point;
   ctx->tok_ty = SLEX_TOK_err;
@@ -157,6 +163,19 @@ static int slex_utf8_encode_esc_seq(SlexContext *ctx, long long codepoint, char 
     loc[3] = 0x80 | (codepoint & 0x3F);
     return 4;
   }
+}
+
+static int slex_parse_ident(SlexContext *ctx) {
+  ctx->tok_ty = SLEX_TOK_ident;
+  ctx->first_tok_char = ctx->parse_point;
+
+  while(ctx->parse_point < ctx->stream_end) {
+    if(!slex_is_ident(*ctx->parse_point)) break;
+    ctx->parse_point++;
+  }
+
+  ctx->last_tok_char = ctx->parse_point - 1;
+  return 1;
 }
 
 static int slex_parse_num(SlexContext *ctx) {
@@ -386,7 +405,7 @@ other_sequence:
 }
 
 static int slex_parse_char_or_str_lit(SlexContext *ctx) {
-  int curr_str_len = 0;
+  int curr_str_idx = 0;
 
   char delim = *ctx->parse_point;
   ctx->tok_ty = delim == '"' ? SLEX_TOK_str_lit : SLEX_TOK_char_lit;
@@ -397,23 +416,28 @@ static int slex_parse_char_or_str_lit(SlexContext *ctx) {
   while(ctx->parse_point < ctx->stream_end) {
     if(*ctx->parse_point == delim) {
       ctx->last_tok_char = ctx->parse_point;
-      ctx->str_len = curr_str_len;
+      ctx->str_len = curr_str_idx;
       ctx->parse_point++;
       return 1;
     }
 
-    if(curr_str_len > ctx->string_store_len) 
+    if(curr_str_idx >= ctx->string_store_len) 
       return slex_return_err(ctx);
 
     if(*ctx->parse_point == '\\') {
       long long c = slex_parse_esc_seq(ctx);
       if(c == -1) return slex_return_err(ctx);
-      curr_str_len += slex_utf8_encode_esc_seq(ctx, c, ctx->string_store + curr_str_len);
+
+      int len = slex_utf8_encode_esc_seq(ctx, c, ctx->string_store + curr_str_idx);
+      if(len == -1)
+        return slex_return_err(ctx);
+
+      curr_str_idx += len;
     }
     else {
-      ctx->string_store[curr_str_len] = *ctx->parse_point;
+      ctx->string_store[curr_str_idx] = *ctx->parse_point;
       ctx->parse_point++;
-      curr_str_len++;
+      curr_str_idx++;
     }
   }
 
@@ -444,9 +468,13 @@ int slex_get_next_token(SlexContext *ctx) {
     return slex_parse_int_lit(ctx);
 
   switch(*ctx->parse_point) {
-    default: return slex_return_err(ctx);
     case '"': case '\'': return slex_parse_char_or_str_lit(ctx);
   }
+
+  if(slex_is_ident(*ctx->parse_point)) 
+    return slex_parse_ident(ctx);
+
+  return slex_return_err(ctx);
 }
 
 void slex_get_token_location(SlexContext *ctx, char *stream_begin, int *line_num, int *col_num) {

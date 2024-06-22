@@ -1,14 +1,11 @@
-.PHONY: clean all
+.PHONY: clean all fuzz test
 
 all: test fuzz
 
 fuzz:
-	cc -o fuzz -fsanitize=fuzzer,undefined slex_fuzz.c
-	./fuzz
+	@cc -o build/fuzz -fsanitize=fuzzer,address,undefined -g slex_fuzz.c
+	@./build/fuzz
 
 test:
-	cc -o test slex_test.c
-	./test
-
-clean:
-	rm test fuzz
+	@cc -o build/test -fsanitize=address,undefined -g slex_test.c
+	@./build/test
