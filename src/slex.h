@@ -6,57 +6,57 @@ typedef enum {
   SLEX_TOK_str_lit,
   SLEX_TOK_char_lit,
   SLEX_TOK_int_lit,
-  SLEX_TOK_ident,
-  SLEX_TOK_l_square,
-  SLEX_TOK_r_square,
-  SLEX_TOK_l_paren,
-  SLEX_TOK_r_paren,
-  SLEX_TOK_l_brace,
-  SLEX_TOK_r_brace,
-  SLEX_TOK_period,
-  SLEX_TOK_ellipsis,
-  SLEX_TOK_amp,
-  SLEX_TOK_ampamp,
-  SLEX_TOK_ampequal,
-  SLEX_TOK_star,
-  SLEX_TOK_starequal,
-  SLEX_TOK_plus,
-  SLEX_TOK_plusplus,
-  SLEX_TOK_plusequal,
-  SLEX_TOK_minus,
-  SLEX_TOK_arrow,
-  SLEX_TOK_minusminus,
-  SLEX_TOK_minusequal,
-  SLEX_TOK_tilde,
-  SLEX_TOK_exclaim,
-  SLEX_TOK_exclaimequal,
-  SLEX_TOK_slash,
-  SLEX_TOK_slashequal,
-  SLEX_TOK_percent,
-  SLEX_TOK_percentequal,
-  SLEX_TOK_less,
-  SLEX_TOK_lessless,
-  SLEX_TOK_lessequal,
-  SLEX_TOK_lesslessequal,
-  SLEX_TOK_spaceship,
-  SLEX_TOK_greater,
-  SLEX_TOK_greatergreater,
-  SLEX_TOK_greaterequal,
-  SLEX_TOK_greatergreaterequal,
-  SLEX_TOK_caret,
-  SLEX_TOK_caretequal,
-  SLEX_TOK_pipe,
-  SLEX_TOK_pipepipe,
-  SLEX_TOK_pipeequal,
-  SLEX_TOK_question,
-  SLEX_TOK_colon,
-  SLEX_TOK_semi,
-  SLEX_TOK_equal,
-  SLEX_TOK_equalequal,
-  SLEX_TOK_comma,
-  SLEX_TOK_hash,
-  SLEX_TOK_hashhash,
-  SLEX_TOK_hashat,
+  SLEX_TOK_identefier,
+  SLEX_TOK_l_square,          // [
+  SLEX_TOK_r_square,          // ]
+  SLEX_TOK_l_paren,           // (
+  SLEX_TOK_r_paren,           // )
+  SLEX_TOK_l_brace,           // {
+  SLEX_TOK_r_brace,           // }
+  SLEX_TOK_period,            // .
+  SLEX_TOK_ellipsis,          // ...
+  SLEX_TOK_amp,               // &
+  SLEX_TOK_ampamp,            // &&
+  SLEX_TOK_ampequal,          // &=
+  SLEX_TOK_star,              // *
+  SLEX_TOK_starequal,         // *=
+  SLEX_TOK_plus,              // +
+  SLEX_TOK_plusplus,          // ++
+  SLEX_TOK_plusequal,         // +=
+  SLEX_TOK_minus,             // -
+  SLEX_TOK_arrow,             // ->
+  SLEX_TOK_minusminus,        // --
+  SLEX_TOK_minusequal,        // -=
+  SLEX_TOK_tilde,             // ~
+  SLEX_TOK_exclaim,           // !
+  SLEX_TOK_exclaimequal,      // !=
+  SLEX_TOK_slash,             // /
+  SLEX_TOK_slashequal,        // /=
+  SLEX_TOK_percent,           // %
+  SLEX_TOK_percentequal,      // %=
+  SLEX_TOK_less,              // <
+  SLEX_TOK_lessless,          // <<
+  SLEX_TOK_lessequal,         // <=
+  SLEX_TOK_lesslessequal,     // <<=
+  SLEX_TOK_spaceship,         // <=>
+  SLEX_TOK_greater,           // >
+  SLEX_TOK_greatergreater,    // >>
+  SLEX_TOK_greaterequal,      // >=
+  SLEX_TOK_greatergreaterequal,// >>=
+  SLEX_TOK_caret,             // ^
+  SLEX_TOK_caretequal,        // ^=
+  SLEX_TOK_pipe,              // |
+  SLEX_TOK_pipepipe,          // ||
+  SLEX_TOK_pipeequal,         // |=
+  SLEX_TOK_question,          // ?
+  SLEX_TOK_colon,             // :
+  SLEX_TOK_semi,              // ;
+  SLEX_TOK_equal,             // =
+  SLEX_TOK_equalequal,        // ==
+  SLEX_TOK_comma,             // ,
+  SLEX_TOK_hash,              // #
+  SLEX_TOK_hashhash,          // ##
+  SLEX_TOK_hashat,            // #@
 } TokenType;
 
 typedef enum {
@@ -369,7 +369,7 @@ static int slex_skip(SlexContext *ctx) {
 }
 
 static int slex_parse_ident(SlexContext *ctx) {
-  ctx->tok_ty = SLEX_TOK_ident;
+  ctx->tok_ty = SLEX_TOK_identefier;
   ctx->first_tok_char = ctx->parse_point;
 
   while(ctx->parse_point < ctx->stream_end) {
