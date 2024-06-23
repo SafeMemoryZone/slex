@@ -106,7 +106,7 @@ static int slex_is_whitespace(char c) {
 
 static int slex_is_ident(char c) {
   return slex_is_numeric(c) || (c >= 'A' && c <= 'Z') ||
-         (c >= 'a' && c <= 'z') || c == '_';
+    (c >= 'a' && c <= 'z') || c == '_';
 }
 
 static int slex_return_err(ErrorType err_ty, SlexContext *ctx) {
@@ -195,8 +195,8 @@ static int slex_skip(SlexContext *ctx) {
       int terminated = 0;
       while(ctx->parse_point < ctx->stream_end) {
         if(*ctx->parse_point == '*' 
-           && ctx->parse_point <= ctx->stream_end - 2
-           && ctx->parse_point[1] == '/') {
+            && ctx->parse_point <= ctx->stream_end - 2
+            && ctx->parse_point[1] == '/') {
           ctx->parse_point += 2;
           terminated = 1;
           break;
@@ -472,7 +472,7 @@ static int slex_parse_char_or_str_lit(SlexContext *ctx) {
 
     if(*ctx->parse_point == '\\') {
       long long c = slex_parse_esc_seq(ctx);
-      if(c == -1) return slex_return_err(SLEX_ERR_parse, ctx);
+      if(c == -1) return 0;
 
       int len = slex_utf8_encode_esc_seq(ctx, c, ctx->string_store + curr_str_idx);
       if(len == -1)
