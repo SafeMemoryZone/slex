@@ -73,6 +73,8 @@ void slex_get_parse_ptr_location(SlexContext *context, char *stream_begin, int *
 
 /* -- Implementation -- */
 
+// TODO: parse number suffixes and add more tokens
+
 static int slex_is_numeric(char c) {
   return c >= '0' && c <= '9';
 }
@@ -163,6 +165,45 @@ static int slex_utf8_encode_esc_seq(SlexContext *ctx, long long codepoint, char 
     loc[3] = 0x80 | (codepoint & 0x3F);
     return 4;
   }
+}
+
+static int slex_skip(SlexContext *ctx) {
+  while(ctx->parse_point < ctx->stream_end) {
+    // whitespace
+    while(ctx->parse_point < ctx->stream_end) {
+      if(!slex_is_whitespace(*ctx->parse_point)) break;
+      ctx->parse_point++;
+    }
+    // comments
+    if(ctx->parse_point > ctx->stream_end - 2) break;
+
+    if(*ctx->parse_point == '/' && ctx->parse_point[1] == '/') {
+      ctx->parse_point += 2; // skip //
+      while(ctx->parse_point < ctx->stream_end) {
+        if(*ctx->parse_point == '\n') break;
+        ctx->parse_point++;
+      }
+      ctx->parse_point++;
+    }
+    else if(*ctx->parse_point == '/' && ctx->parse_point[1] == '*') {
+      ctx->parse_point += 2;
+      int terminated = 0;
+      while(ctx->parse_point < ctx->stream_end) {
+        if(*ctx->parse_point == '*' 
+           && ctx->parse_point <= ctx->stream_end - 2
+           && ctx->parse_point[1] == '/') {
+          ctx->parse_point += 2;
+          terminated = 1;
+          break;
+        }
+        ctx->parse_point++;
+      }
+      if(!terminated)
+        return slex_return_err(ctx);
+    }
+    else break;
+  }
+  return 1;
 }
 
 static int slex_parse_ident(SlexContext *ctx) {
@@ -456,10 +497,8 @@ int slex_get_next_token(SlexContext *ctx) {
   if(ctx->parse_point >= ctx->stream_end) 
     return slex_return_eof(ctx);
 
-  while(ctx->parse_point < ctx->stream_end) {
-    if(!slex_is_whitespace(*ctx->parse_point)) break;
-    ctx->parse_point++;
-  }
+  if(!slex_skip(ctx))
+    return 0;
 
   if(ctx->parse_point >= ctx->stream_end) 
     return slex_return_eof(ctx);
