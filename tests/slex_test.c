@@ -8,7 +8,7 @@ int main(int argc, char **argv) {
   SlexContext ctx;
   char store[1024];
 
-  FILE *f = fopen("file.test", "rb");
+  FILE *f = fopen("../src/slex.h", "rb");
   char *text = (char *)malloc(1 << 20);
   int len = f ? (int)fread(text, 1, 1 << 20, f) : -1;
 

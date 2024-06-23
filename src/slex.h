@@ -7,6 +7,56 @@ typedef enum {
   SLEX_TOK_char_lit,
   SLEX_TOK_int_lit,
   SLEX_TOK_ident,
+  SLEX_TOK_l_square,
+  SLEX_TOK_r_square,
+  SLEX_TOK_l_paren,
+  SLEX_TOK_r_paren,
+  SLEX_TOK_l_brace,
+  SLEX_TOK_r_brace,
+  SLEX_TOK_period,
+  SLEX_TOK_ellipsis,
+  SLEX_TOK_amp,
+  SLEX_TOK_ampamp,
+  SLEX_TOK_ampequal,
+  SLEX_TOK_star,
+  SLEX_TOK_starequal,
+  SLEX_TOK_plus,
+  SLEX_TOK_plusplus,
+  SLEX_TOK_plusequal,
+  SLEX_TOK_minus,
+  SLEX_TOK_arrow,
+  SLEX_TOK_minusminus,
+  SLEX_TOK_minusequal,
+  SLEX_TOK_tilde,
+  SLEX_TOK_exclaim,
+  SLEX_TOK_exclaimequal,
+  SLEX_TOK_slash,
+  SLEX_TOK_slashequal,
+  SLEX_TOK_percent,
+  SLEX_TOK_percentequal,
+  SLEX_TOK_less,
+  SLEX_TOK_lessless,
+  SLEX_TOK_lessequal,
+  SLEX_TOK_lesslessequal,
+  SLEX_TOK_spaceship,
+  SLEX_TOK_greater,
+  SLEX_TOK_greatergreater,
+  SLEX_TOK_greaterequal,
+  SLEX_TOK_greatergreaterequal,
+  SLEX_TOK_caret,
+  SLEX_TOK_caretequal,
+  SLEX_TOK_pipe,
+  SLEX_TOK_pipepipe,
+  SLEX_TOK_pipeequal,
+  SLEX_TOK_question,
+  SLEX_TOK_colon,
+  SLEX_TOK_semi,
+  SLEX_TOK_equal,
+  SLEX_TOK_equalequal,
+  SLEX_TOK_comma,
+  SLEX_TOK_hash,
+  SLEX_TOK_hashhash,
+  SLEX_TOK_hashat,
 } TokenType;
 
 typedef enum {
@@ -78,7 +128,7 @@ void slex_get_parse_ptr_location(SlexContext *context, char *stream_begin, int *
 
 /* -- Implementation -- */
 
-// TODO: parse number suffixes and add more tokens
+// TODO: parse number suffixes or prefixes, optimize code and add more config options
 
 static int slex_is_numeric(char c) {
   return c >= '0' && c <= '9';
@@ -126,6 +176,31 @@ static int slex_return_eof(SlexContext *ctx) {
 #endif
 }
 
+static int slex_consume_single_char(SlexContext *ctx, TokenType ty)  {
+  ctx->tok_ty = ty;
+  ctx->first_tok_char = ctx->parse_point;
+  ctx->last_tok_char = ctx->first_tok_char;
+  ctx->parse_point++;
+  return 1;
+}
+
+static int slex_try_match(SlexContext *ctx, TokenType match_ty, char *tok, int tok_len) {
+  if (ctx->parse_point > ctx->stream_end - tok_len) 
+    return 0;
+
+  for (int i = 0; i < tok_len; i++) {
+    if (ctx->parse_point[i] != tok[i]) {
+      return 0;
+    }
+  }
+
+  ctx->tok_ty = match_ty;
+  ctx->first_tok_char = ctx->parse_point;
+  ctx->last_tok_char = ctx->parse_point + tok_len - 1;
+  ctx->parse_point += tok_len;
+  return 1;
+}
+
 static int slex_mul_overflows_u64(unsigned long long a, unsigned long long b) {
   if(a == 0 || b == 0) return 0;
   return a > 0xFFFFFFFFFFFFFFFF / b;
@@ -169,6 +244,88 @@ static int slex_utf8_encode_esc_seq(SlexContext *ctx, long long codepoint, char 
     loc[2] = 0x80 | ((codepoint >> 6) & 0x3F);
     loc[3] = 0x80 | (codepoint & 0x3F);
     return 4;
+  }
+}
+
+static int slex_parse_punctuator(SlexContext *ctx) {
+  switch (*ctx->parse_point) {
+    case '[':
+      return slex_consume_single_char(ctx, SLEX_TOK_l_square);
+    case ']':
+      return slex_consume_single_char(ctx, SLEX_TOK_r_square);
+    case '(':
+      return slex_consume_single_char(ctx, SLEX_TOK_l_paren);
+    case ')':
+      return slex_consume_single_char(ctx, SLEX_TOK_r_paren);
+    case '{':
+      return slex_consume_single_char(ctx, SLEX_TOK_l_brace);
+    case '}':
+      return slex_consume_single_char(ctx, SLEX_TOK_r_brace);
+    case '.':
+      if (slex_try_match(ctx, SLEX_TOK_ellipsis, "...", 3)) return 1;
+      return slex_consume_single_char(ctx, SLEX_TOK_period);
+    case '&':
+      if (slex_try_match(ctx, SLEX_TOK_ampamp, "&&", 2)) return 1;
+      if (slex_try_match(ctx, SLEX_TOK_ampequal, "&=", 2)) return 1;
+      return slex_consume_single_char(ctx, SLEX_TOK_amp);
+    case '*':
+      if (slex_try_match(ctx, SLEX_TOK_starequal, "*=", 2)) return 1;
+      return slex_consume_single_char(ctx, SLEX_TOK_star);
+    case '+':
+      if (slex_try_match(ctx, SLEX_TOK_plusplus, "++", 2)) return 1;
+      if (slex_try_match(ctx, SLEX_TOK_plusequal, "+=", 2)) return 1;
+      return slex_consume_single_char(ctx, SLEX_TOK_plus);
+    case '-':
+      if (slex_try_match(ctx, SLEX_TOK_arrow, "->", 2)) return 1;
+      if (slex_try_match(ctx, SLEX_TOK_minusminus, "--", 2)) return 1;
+      if (slex_try_match(ctx, SLEX_TOK_minusequal, "-=", 2)) return 1;
+      return slex_consume_single_char(ctx, SLEX_TOK_minus);
+    case '~':
+      return slex_consume_single_char(ctx, SLEX_TOK_tilde);
+    case '!':
+      if (slex_try_match(ctx, SLEX_TOK_exclaimequal, "!=", 2)) return 1;
+      return slex_consume_single_char(ctx, SLEX_TOK_exclaim);
+    case '/':
+      if (slex_try_match(ctx, SLEX_TOK_slashequal, "/=", 2)) return 1;
+      return slex_consume_single_char(ctx, SLEX_TOK_slash);
+    case '%':
+      if (slex_try_match(ctx, SLEX_TOK_percentequal, "%=", 2)) return 1;
+      return slex_consume_single_char(ctx, SLEX_TOK_percent);
+    case '<':
+      if (slex_try_match(ctx, SLEX_TOK_spaceship, "<=>", 3)) return 1;
+      if (slex_try_match(ctx, SLEX_TOK_lesslessequal, "<<=", 3)) return 1;
+      if (slex_try_match(ctx, SLEX_TOK_lessequal, "<=", 2)) return 1;
+      if (slex_try_match(ctx, SLEX_TOK_lessless, "<<", 2)) return 1;
+      return slex_consume_single_char(ctx, SLEX_TOK_less);
+    case '>':
+      if (slex_try_match(ctx, SLEX_TOK_greatergreaterequal, ">>=", 3)) return 1;
+      if (slex_try_match(ctx, SLEX_TOK_greaterequal, ">=", 2)) return 1;
+      if (slex_try_match(ctx, SLEX_TOK_greatergreater, ">>", 2)) return 1;
+      return slex_consume_single_char(ctx, SLEX_TOK_greater);
+    case '^':
+      if (slex_try_match(ctx, SLEX_TOK_caretequal, "^=", 2)) return 1;
+      return slex_consume_single_char(ctx, SLEX_TOK_caret);
+    case '|':
+      if (slex_try_match(ctx, SLEX_TOK_pipepipe, "||", 2)) return 1;
+      if (slex_try_match(ctx, SLEX_TOK_pipeequal, "|=", 2)) return 1;
+      return slex_consume_single_char(ctx, SLEX_TOK_pipe);
+    case '?':
+      return slex_consume_single_char(ctx, SLEX_TOK_question);
+    case ':':
+      return slex_consume_single_char(ctx, SLEX_TOK_colon);
+    case ';':
+      return slex_consume_single_char(ctx, SLEX_TOK_semi);
+    case '=':
+      if (slex_try_match(ctx, SLEX_TOK_equalequal, "==", 2)) return 1;
+      return slex_consume_single_char(ctx, SLEX_TOK_equal);
+    case ',':
+      return slex_consume_single_char(ctx, SLEX_TOK_comma);
+    case '#':
+      if (slex_try_match(ctx, SLEX_TOK_hashhash, "##", 2)) return 1;
+      if (slex_try_match(ctx, SLEX_TOK_hashat, "#@", 2)) return 1;
+      return slex_consume_single_char(ctx, SLEX_TOK_hash);
+    default:
+      return 0; // Not a punctuator
   }
 }
 
@@ -508,13 +665,19 @@ int slex_get_next_token(SlexContext *ctx) {
   if(ctx->parse_point >= ctx->stream_end) 
     return slex_return_eof(ctx);
 
+  // punctuators
+  if(slex_parse_punctuator(ctx))
+    return 1;
+
+  // numbers
   if(slex_is_numeric(*ctx->parse_point))
     return slex_parse_int_lit(ctx);
 
-  switch(*ctx->parse_point) {
-    case '"': case '\'': return slex_parse_char_or_str_lit(ctx);
-  }
+  // string literals
+  if(*ctx->parse_point == '"' || *ctx->parse_point == '\'')
+    return slex_parse_char_or_str_lit(ctx);
 
+  // identefiers
   if(slex_is_ident(*ctx->parse_point)) 
     return slex_parse_ident(ctx);
 
