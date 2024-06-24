@@ -731,10 +731,6 @@ int slex_get_next_token(SlexContext *ctx) {
   if(ctx->parse_point >= ctx->stream_end) 
     return slex_return_eof(ctx);
 
-  // punctuators
-  if(slex_parse_punctuator(ctx))
-    return 1;
-
   // numbers
   if(slex_is_numeric(*ctx->parse_point))
     return slex_parse_int_lit(ctx);
@@ -746,6 +742,11 @@ int slex_get_next_token(SlexContext *ctx) {
   // identefiers
   if(slex_is_ident(*ctx->parse_point)) 
     return slex_parse_ident(ctx);
+
+  // punctuators
+  if(slex_parse_punctuator(ctx))
+    return 1;
+
 
   return slex_return_err(SLEX_ERR_unknown_tok, ctx);
 }
