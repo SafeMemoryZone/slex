@@ -1,6 +1,18 @@
 #ifndef SLEX_H
 #define SLEX_H
 
+/* -- Configuration -- */
+
+// Whether to return SLEX_TOK_eof when at the end.
+#ifndef SLEX_END_IS_TOKEN
+#define SLEX_END_IS_TOKEN 1
+#endif
+
+// Whether to add support for some CXX specific tokens.
+#ifndef SLEX_ADD_CXX_SUPPORT
+#define SLEX_ADD_CXX_SUPPORT 1
+#endif
+
 typedef enum {
   SLEX_TOK_eof,
   SLEX_TOK_str_lit,
@@ -57,6 +69,11 @@ typedef enum {
   SLEX_TOK_hash,              // #
   SLEX_TOK_hashhash,          // ##
   SLEX_TOK_hashat,            // #@
+#if SLEX_ADD_CXX_SUPPORT
+  SLEX_TOK_periodstar,        // .*
+  SLEX_TOK_arrowstar,         // ->*
+  SLEX_TOK_coloncolon,        // ::
+#endif
 } TokenType;
 
 typedef enum {
@@ -78,6 +95,10 @@ typedef struct {
   unsigned long long parsed_int_lit;
 
 } SlexContext;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 // Description:
 // - This function initializes the SlexContext struct.
@@ -117,17 +138,11 @@ void slex_get_token_location(SlexContext *context, char *stream_begin, int *line
 // - col_num: Output pointer for the column number.
 void slex_get_parse_ptr_location(SlexContext *context, char *stream_begin, int *line_num, int *col_num);
 
-#ifdef SLEX_IMPLEMENTATION
-
-/* -- Configuration -- */
-
-// Whether to return SLEX_TOK_eof when at the end.
-#ifndef SLEX_END_IS_TOKEN
-#define SLEX_END_IS_TOKEN 1
+#ifdef __cplusplus
+}
 #endif
 
-/* -- Implementation -- */
-
+#ifdef SLEX_IMPLEMENTATION
 // TODO: integer suffixes, preprocessor directives, more config options
 
 static int slex_is_numeric(char c) {
@@ -263,6 +278,9 @@ static int slex_parse_punctuator(SlexContext *ctx) {
       return slex_consume_single_char(ctx, SLEX_TOK_r_brace);
     case '.':
       if (slex_try_match(ctx, SLEX_TOK_ellipsis, "...", 3)) return 1;
+#if SLEX_ADD_CXX_SUPPORT
+      if(slex_try_match(ctx, SLEX_TOK_periodstar, ".*", 2)) return 1;
+#endif
       return slex_consume_single_char(ctx, SLEX_TOK_period);
     case '&':
       if (slex_try_match(ctx, SLEX_TOK_ampamp, "&&", 2)) return 1;
@@ -279,6 +297,9 @@ static int slex_parse_punctuator(SlexContext *ctx) {
       if (slex_try_match(ctx, SLEX_TOK_arrow, "->", 2)) return 1;
       if (slex_try_match(ctx, SLEX_TOK_minusminus, "--", 2)) return 1;
       if (slex_try_match(ctx, SLEX_TOK_minusequal, "-=", 2)) return 1;
+#if SLEX_ADD_CXX_SUPPORT
+      if(slex_try_match(ctx, SLEX_TOK_arrowstar, "->*", 3)) return 1;
+#endif
       return slex_consume_single_char(ctx, SLEX_TOK_minus);
     case '~':
       return slex_consume_single_char(ctx, SLEX_TOK_tilde);
@@ -312,6 +333,9 @@ static int slex_parse_punctuator(SlexContext *ctx) {
     case '?':
       return slex_consume_single_char(ctx, SLEX_TOK_question);
     case ':':
+#if SLEX_ADD_CXX_SUPPORT
+      if (slex_try_match(ctx, SLEX_TOK_coloncolon, "::", 2)) return 1;
+#endif
       return slex_consume_single_char(ctx, SLEX_TOK_colon);
     case ';':
       return slex_consume_single_char(ctx, SLEX_TOK_semi);
