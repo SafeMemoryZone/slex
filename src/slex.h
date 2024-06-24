@@ -128,7 +128,7 @@ void slex_get_parse_ptr_location(SlexContext *context, char *stream_begin, int *
 
 /* -- Implementation -- */
 
-// TODO: parse number suffixes or prefixes, optimize code and add more config options
+// TODO: integer suffixes, preprocessor directives, more config options
 
 static int slex_is_numeric(char c) {
   return c >= '0' && c <= '9';
@@ -499,6 +499,48 @@ static int slex_parse_int_lit(SlexContext *ctx) {
     }
 
     ctx->parsed_int_lit = oct;
+    ctx->parse_point = end;
+    ctx->last_tok_char = end - 1;
+    return 1;
+  }
+
+  if(ctx->parse_point[1] == 'b') {
+    ctx->parse_point += 2; // consume 0b
+
+    if(ctx->parse_point >= ctx->stream_end) 
+      return slex_return_err(SLEX_ERR_parse, ctx);
+
+    char *end = ctx->parse_point;
+    unsigned long long fact = 0;
+
+    while(end < ctx->stream_end) {
+      if(*end != '0' && *end != '1') break;
+
+      if(slex_mul_overflows_u64(fact, 2)) {
+        ctx->parse_point = end;
+        return slex_return_err(SLEX_ERR_storage, ctx);
+      }
+      end++;
+      if(fact != 0) fact *= 2;
+      else fact = 1;
+    }
+
+    if(end - ctx->parse_point == 0) 
+      return slex_return_err(SLEX_ERR_parse, ctx);
+
+    unsigned long long bin = 0;
+
+    for(char *it = ctx->parse_point; it < end; it++) {
+      unsigned long long b = (*it - '0') * fact;
+      if(slex_add_overflows_u64(b, bin)) {
+        ctx->parse_point = it;
+        return slex_return_err(SLEX_ERR_storage, ctx);
+      }
+      bin += b;
+      fact /= 2;
+    }
+
+    ctx->parsed_int_lit = bin;
     ctx->parse_point = end;
     ctx->last_tok_char = end - 1;
     return 1;
