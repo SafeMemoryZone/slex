@@ -55,7 +55,7 @@ typedef enum {
   SLEX_TOK_shl,              // Shift Left (<<)
   SLEX_TOK_less_or_eq,       // Less Than or Equal (<=)
   SLEX_TOK_shl_eq,           // Shift Left Assignment (<<=)
-  SLEX_TOK_spaceship,        // Spaceship (<=>
+  SLEX_TOK_spaceship,        // Spaceship (<=>)
   SLEX_TOK_greater,          // Greater Than (>)
   SLEX_TOK_shr,              // Shift Right (>>)
   SLEX_TOK_greater_or_eq,    // Greater Than or Equal (>=)
@@ -68,7 +68,7 @@ typedef enum {
   SLEX_TOK_questionmark,     // Question Mark (?)
   SLEX_TOK_colon,            // Colon (:)
   SLEX_TOK_semi,             // Semicolon (;)
-  SLEX_TOK_eq,               // Assignment (=)
+  SLEX_TOK_assign,           // Assignment (=)
   SLEX_TOK_equality,         // Equality (==)
   SLEX_TOK_comma,            // Comma (,)
   SLEX_TOK_preprocessor,     // Preprocessor (#)
@@ -356,7 +356,7 @@ static int slex_parse_punctuator(SlexContext *ctx) {
       return slex_consume_single_char(ctx, SLEX_TOK_semi);
     case '=':
       if (slex_try_match(ctx, SLEX_TOK_equality, "==", 2)) return 1;
-      return slex_consume_single_char(ctx, SLEX_TOK_eq);
+      return slex_consume_single_char(ctx, SLEX_TOK_assign);
     case ',':
       return slex_consume_single_char(ctx, SLEX_TOK_comma);
     case '#':
