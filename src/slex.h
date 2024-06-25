@@ -13,12 +13,17 @@
 #define SLEX_ADD_CXX_SUPPORT 1
 #endif
 
+// Whether to parse int suffixes as a part of the token.
+#ifndef SLEX_PARSE_INT_SUFFIXES
+#define SLEX_PARSE_INT_SUFFIXES 1
+#endif
+
 typedef enum {
-  SLEX_TOK_eof,
-  SLEX_TOK_str_lit,
-  SLEX_TOK_char_lit,
-  SLEX_TOK_int_lit,
-  SLEX_TOK_identefier,
+  SLEX_TOK_eof,               // returned when SLEX_END_IS_TOKEN is enabled
+  SLEX_TOK_str_lit,           // "hello, world\n", "abc\0"
+  SLEX_TOK_char_lit,          // 'h', 'hello', '\x5f' ...
+  SLEX_TOK_int_lit,           // 0x12, 123, 030, 0b111 ...
+  SLEX_TOK_identefier,        // foo, bar ...
   SLEX_TOK_l_square,          // [
   SLEX_TOK_r_square,          // ]
   SLEX_TOK_l_paren,           // (
@@ -143,7 +148,7 @@ void slex_get_parse_ptr_location(SlexContext *context, char *stream_begin, int *
 #endif
 
 #ifdef SLEX_IMPLEMENTATION
-// TODO: integer suffixes, preprocessor directives, more config options
+// TODO: preprocessor directives, more config options
 
 static int slex_is_numeric(char c) {
   return c >= '0' && c <= '9';
@@ -178,6 +183,16 @@ static int slex_return_err(ErrorType err_ty, SlexContext *ctx) {
   ctx->last_tok_char = ctx->parse_point;
   ctx->tok_ty = err_ty;
   return 0;
+}
+
+static void slex_parse_int_suffix(SlexContext *ctx) {
+  while(ctx->parse_point < ctx->stream_end) {
+    char c = *ctx->parse_point;
+    if(!(c >= 'a' && c <= 'z') && !(c >= 'A' && c <= 'Z'))
+      break;
+    ctx->parse_point++;
+  }
+  ctx->last_tok_char = ctx->parse_point - 1;
 }
 
 static int slex_return_eof(SlexContext *ctx) {
@@ -432,10 +447,13 @@ static int slex_parse_num(SlexContext *ctx) {
     num += n;
     fact /= 10;
   }
-
   ctx->parsed_int_lit = num;
   ctx->parse_point = end;
   ctx->last_tok_char = end - 1;
+
+#if SLEX_PARSE_INT_SUFFIXES
+  slex_parse_int_suffix(ctx);
+#endif
   return 1;
 }
 
@@ -489,6 +507,9 @@ static int slex_parse_int_lit(SlexContext *ctx) {
     ctx->parsed_int_lit = hex;
     ctx->parse_point = end;
     ctx->last_tok_char = end - 1;
+#if SLEX_PARSE_INT_SUFFIXES
+  slex_parse_int_suffix(ctx);
+#endif
     return 1;
   }
 
@@ -525,6 +546,9 @@ static int slex_parse_int_lit(SlexContext *ctx) {
     ctx->parsed_int_lit = oct;
     ctx->parse_point = end;
     ctx->last_tok_char = end - 1;
+#if SLEX_PARSE_INT_SUFFIXES
+  slex_parse_int_suffix(ctx);
+#endif
     return 1;
   }
 
@@ -567,6 +591,9 @@ static int slex_parse_int_lit(SlexContext *ctx) {
     ctx->parsed_int_lit = bin;
     ctx->parse_point = end;
     ctx->last_tok_char = end - 1;
+#if SLEX_PARSE_INT_SUFFIXES
+  slex_parse_int_suffix(ctx);
+#endif
     return 1;
   }
 
@@ -574,6 +601,9 @@ zero:
   ctx->parsed_int_lit = 0;
   ctx->last_tok_char = ctx->first_tok_char;
   ctx->parse_point++;
+#if SLEX_PARSE_INT_SUFFIXES
+  slex_parse_int_suffix(ctx);
+#endif
   return 1;
 }
 
