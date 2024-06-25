@@ -19,65 +19,65 @@
 #endif
 
 typedef enum {
-  SLEX_TOK_eof,               // returned when SLEX_END_IS_TOKEN is enabled
-  SLEX_TOK_str_lit,           // "hello, world\n", "abc\0"
-  SLEX_TOK_char_lit,          // 'h', 'hello', '\x5f' ...
-  SLEX_TOK_int_lit,           // 0x12, 123, 030, 0b111 ...
-  SLEX_TOK_identefier,        // foo, bar ...
-  SLEX_TOK_l_square,          // [
-  SLEX_TOK_r_square,          // ]
-  SLEX_TOK_l_paren,           // (
-  SLEX_TOK_r_paren,           // )
-  SLEX_TOK_l_brace,           // {
-  SLEX_TOK_r_brace,           // }
-  SLEX_TOK_period,            // .
-  SLEX_TOK_ellipsis,          // ...
-  SLEX_TOK_amp,               // &
-  SLEX_TOK_ampamp,            // &&
-  SLEX_TOK_ampequal,          // &=
-  SLEX_TOK_star,              // *
-  SLEX_TOK_starequal,         // *=
-  SLEX_TOK_plus,              // +
-  SLEX_TOK_plusplus,          // ++
-  SLEX_TOK_plusequal,         // +=
-  SLEX_TOK_minus,             // -
-  SLEX_TOK_arrow,             // ->
-  SLEX_TOK_minusminus,        // --
-  SLEX_TOK_minusequal,        // -=
-  SLEX_TOK_tilde,             // ~
-  SLEX_TOK_exclaim,           // !
-  SLEX_TOK_exclaimequal,      // !=
-  SLEX_TOK_slash,             // /
-  SLEX_TOK_slashequal,        // /=
-  SLEX_TOK_percent,           // %
-  SLEX_TOK_percentequal,      // %=
-  SLEX_TOK_less,              // <
-  SLEX_TOK_lessless,          // <<
-  SLEX_TOK_lessequal,         // <=
-  SLEX_TOK_lesslessequal,     // <<=
-  SLEX_TOK_spaceship,         // <=>
-  SLEX_TOK_greater,           // >
-  SLEX_TOK_greatergreater,    // >>
-  SLEX_TOK_greaterequal,      // >=
-  SLEX_TOK_greatergreaterequal,// >>=
-  SLEX_TOK_caret,             // ^
-  SLEX_TOK_caretequal,        // ^=
-  SLEX_TOK_pipe,              // |
-  SLEX_TOK_pipepipe,          // ||
-  SLEX_TOK_pipeequal,         // |=
-  SLEX_TOK_question,          // ?
-  SLEX_TOK_colon,             // :
-  SLEX_TOK_semi,              // ;
-  SLEX_TOK_equal,             // =
-  SLEX_TOK_equalequal,        // ==
-  SLEX_TOK_comma,             // ,
-  SLEX_TOK_hash,              // #
-  SLEX_TOK_hashhash,          // ##
-  SLEX_TOK_hashat,            // #@
+  SLEX_TOK_eof,              // End of File (returned when SLEX_END_IS_TOKEN is enabled)
+  SLEX_TOK_str_lit,          // String Literal ("hello, world\n", "abc\0", ...)
+  SLEX_TOK_char_lit,         // Character Literal ('h', 'hello', '\x5f', ...)
+  SLEX_TOK_int_lit,          // Integer Literal (0x12, 123, 030, 0b111, ...)
+  SLEX_TOK_identifier,       // Identifier (foo, bar, ...)
+  SLEX_TOK_l_square_paren,   // Left Square Bracket ([)
+  SLEX_TOK_r_square_paren,   // Right Square Bracket (])
+  SLEX_TOK_l_paren,          // Left Parenthesis (()
+  SLEX_TOK_r_paren,          // Right Parenthesis ())
+  SLEX_TOK_l_brace,          // Left Brace ({)
+  SLEX_TOK_r_brace,          // Right Brace (})
+  SLEX_TOK_period,           // Period (.)
+  SLEX_TOK_ellipsis,         // Ellipsis (...)
+  SLEX_TOK_bitwise_and,      // Bitwise AND (&)
+  SLEX_TOK_and,              // Logical AND (&&)
+  SLEX_TOK_bitwise_and_eq,   // Bitwise AND Assignment (&=)
+  SLEX_TOK_mul,              // Multiplication (*)
+  SLEX_TOK_mul_eq,           // Multiplication Assignment (*=)
+  SLEX_TOK_plus,             // Plus (+)
+  SLEX_TOK_inc,              // Increment (++)
+  SLEX_TOK_plus_eq,          // Addition Assignment (+=)
+  SLEX_TOK_minus,            // Minus (-)
+  SLEX_TOK_arrow,            // Dereference Access (->)
+  SLEX_TOK_dec,              // Decrement (--)
+  SLEX_TOK_minus_eq,         // Subtraction Assignment (-=)
+  SLEX_TOK_bitwise_not,      // Bitwise NOT (~)
+  SLEX_TOK_not,              // Logical NOT (!)
+  SLEX_TOK_not_eq,           // Not Equal (!=)
+  SLEX_TOK_div,              // Division (/)
+  SLEX_TOK_div_eq,           // Division Assignment (/=)
+  SLEX_TOK_mod,              // Modulus (%)
+  SLEX_TOK_mod_eq,           // Modulus Assignment (%=)
+  SLEX_TOK_less,             // Less Than (<)
+  SLEX_TOK_shl,              // Shift Left (<<)
+  SLEX_TOK_less_or_eq,       // Less Than or Equal (<=)
+  SLEX_TOK_shl_eq,           // Shift Left Assignment (<<=)
+  SLEX_TOK_spaceship,        // Spaceship (<=>
+  SLEX_TOK_greater,          // Greater Than (>)
+  SLEX_TOK_shr,              // Shift Right (>>)
+  SLEX_TOK_greater_or_eq,    // Greater Than or Equal (>=)
+  SLEX_TOK_shr_eq,           // Shift Right Assignment (>>=)
+  SLEX_TOK_xor,              // Bitwise XOR (^)
+  SLEX_TOK_xor_eq,           // Bitwise XOR Assignment (^=)
+  SLEX_TOK_bitwise_or,       // Bitwise OR (|)
+  SLEX_TOK_or,               // Logical OR (||)
+  SLEX_TOK_bitwise_or_eq,    // Bitwise OR Assignment (|=)
+  SLEX_TOK_questionmark,     // Question Mark (?)
+  SLEX_TOK_colon,            // Colon (:)
+  SLEX_TOK_semi,             // Semicolon (;)
+  SLEX_TOK_eq,               // Assignment (=)
+  SLEX_TOK_equality,         // Equality (==)
+  SLEX_TOK_comma,            // Comma (,)
+  SLEX_TOK_preprocessor,     // Preprocessor (#)
+  SLEX_TOK_concat,           // Token Concatenation (##)
+  SLEX_TOK_preprocessor_at,  // Preprocessor At (#@)
 #if SLEX_ADD_CXX_SUPPORT
-  SLEX_TOK_periodstar,        // .*
-  SLEX_TOK_arrowstar,         // ->*
-  SLEX_TOK_coloncolon,        // ::
+  SLEX_TOK_member_access,    // Member Access via Pointer to Member (.*)
+  SLEX_TOK_deref_access,     // Dereference Access via Pointer to Member (->*)
+  SLEX_TOK_scope_resolution, // Scope Resolution (::)
 #endif
 } TokenType;
 
@@ -105,43 +105,43 @@ typedef struct {
 extern "C" {
 #endif
 
-// Description:
-// - This function initializes the SlexContext struct.
-// Parameters:
-// - context: The struct to be initialized.
-// - stream_start: Pointer to the first character in the stream.
-// - stream_end: Pointer to the character just past the last character in the stream (or to EOF).
-// - string_store: Pointer to the storage used for parsing strings.
-// - string_store_len: Specifies the length of string_store.
-void slex_init_context(SlexContext *context, char *stream_start, char *stream_end, char* string_store, int string_store_len);
+  // Description:
+  // - This function initializes the SlexContext struct.
+  // Parameters:
+  // - context: The struct to be initialized.
+  // - stream_start: Pointer to the first character in the stream.
+  // - stream_end: Pointer to the character just past the last character in the stream (or to EOF).
+  // - string_store: Pointer to the storage used for parsing strings.
+  // - string_store_len: Specifies the length of string_store.
+  void slex_init_context(SlexContext *context, char *stream_start, char *stream_end, char* string_store, int string_store_len);
 
-// Description:
-// - This function parses a token and advances context->parse_ptr.
-// Parameters:
-// - context: The context needed for tokenizing.
-// Returns:
-// - Returns 1 if a token was parsed successfully; otherwise, returns a non-zero value.
-int slex_get_next_token(SlexContext *context);
+  // Description:
+  // - This function parses a token and advances context->parse_ptr.
+  // Parameters:
+  // - context: The context needed for tokenizing.
+  // Returns:
+  // - Returns 1 if a token was parsed successfully; otherwise, returns a non-zero value.
+  int slex_get_next_token(SlexContext *context);
 
-// Description:
-// - This function retrieves the location of the last token.
-// Parameters:
-// - context: The parsing context.
-// - stream_begin: Pointer to the location from where the lines and columns are counted.
-// - line_num: Output pointer for the line number.
-// - col_num: Output pointer for the column number.
-void slex_get_token_location(SlexContext *context, char *stream_begin, int *line_num, int *col_num);
+  // Description:
+  // - This function retrieves the location of the last token.
+  // Parameters:
+  // - context: The parsing context.
+  // - stream_begin: Pointer to the location from where the lines and columns are counted.
+  // - line_num: Output pointer for the line number.
+  // - col_num: Output pointer for the column number.
+  void slex_get_token_location(SlexContext *context, char *stream_begin, int *line_num, int *col_num);
 
-// Description:
-// - This function returns the current location of the parsing point.
-//   In the event of an error, the parsing point is updated to indicate the error's location.
-//   Therefore, this function can also be used to identify the location of any errors that occur.
-// Parameters:
-// - context: The parsing context.
-// - stream_begin: Pointer to the location from where the lines and columns are counted.
-// - line_num: Output pointer for the line number.
-// - col_num: Output pointer for the column number.
-void slex_get_parse_ptr_location(SlexContext *context, char *stream_begin, int *line_num, int *col_num);
+  // Description:
+  // - This function returns the current location of the parsing point.
+  //   In the event of an error, the parsing point is updated to indicate the error's location.
+  //   Therefore, this function can also be used to identify the location of any errors that occur.
+  // Parameters:
+  // - context: The parsing context.
+  // - stream_begin: Pointer to the location from where the lines and columns are counted.
+  // - line_num: Output pointer for the line number.
+  // - col_num: Output pointer for the column number.
+  void slex_get_parse_ptr_location(SlexContext *context, char *stream_begin, int *line_num, int *col_num);
 
 #ifdef __cplusplus
 }
@@ -280,9 +280,9 @@ static int slex_utf8_encode_esc_seq(SlexContext *ctx, long long codepoint, char 
 static int slex_parse_punctuator(SlexContext *ctx) {
   switch (*ctx->parse_point) {
     case '[':
-      return slex_consume_single_char(ctx, SLEX_TOK_l_square);
+      return slex_consume_single_char(ctx, SLEX_TOK_l_square_paren);
     case ']':
-      return slex_consume_single_char(ctx, SLEX_TOK_r_square);
+      return slex_consume_single_char(ctx, SLEX_TOK_r_square_paren);
     case '(':
       return slex_consume_single_char(ctx, SLEX_TOK_l_paren);
     case ')':
@@ -294,75 +294,75 @@ static int slex_parse_punctuator(SlexContext *ctx) {
     case '.':
       if (slex_try_match(ctx, SLEX_TOK_ellipsis, "...", 3)) return 1;
 #if SLEX_ADD_CXX_SUPPORT
-      if(slex_try_match(ctx, SLEX_TOK_periodstar, ".*", 2)) return 1;
+      if (slex_try_match(ctx, SLEX_TOK_member_access, ".*", 2)) return 1;
 #endif
       return slex_consume_single_char(ctx, SLEX_TOK_period);
     case '&':
-      if (slex_try_match(ctx, SLEX_TOK_ampamp, "&&", 2)) return 1;
-      if (slex_try_match(ctx, SLEX_TOK_ampequal, "&=", 2)) return 1;
-      return slex_consume_single_char(ctx, SLEX_TOK_amp);
+      if (slex_try_match(ctx, SLEX_TOK_and, "&&", 2)) return 1;
+      if (slex_try_match(ctx, SLEX_TOK_bitwise_and_eq, "&=", 2)) return 1;
+      return slex_consume_single_char(ctx, SLEX_TOK_bitwise_and);
     case '*':
-      if (slex_try_match(ctx, SLEX_TOK_starequal, "*=", 2)) return 1;
-      return slex_consume_single_char(ctx, SLEX_TOK_star);
+      if (slex_try_match(ctx, SLEX_TOK_mul_eq, "*=", 2)) return 1;
+      return slex_consume_single_char(ctx, SLEX_TOK_mul);
     case '+':
-      if (slex_try_match(ctx, SLEX_TOK_plusplus, "++", 2)) return 1;
-      if (slex_try_match(ctx, SLEX_TOK_plusequal, "+=", 2)) return 1;
+      if (slex_try_match(ctx, SLEX_TOK_inc, "++", 2)) return 1;
+      if (slex_try_match(ctx, SLEX_TOK_plus_eq, "+=", 2)) return 1;
       return slex_consume_single_char(ctx, SLEX_TOK_plus);
     case '-':
       if (slex_try_match(ctx, SLEX_TOK_arrow, "->", 2)) return 1;
-      if (slex_try_match(ctx, SLEX_TOK_minusminus, "--", 2)) return 1;
-      if (slex_try_match(ctx, SLEX_TOK_minusequal, "-=", 2)) return 1;
+      if (slex_try_match(ctx, SLEX_TOK_dec, "--", 2)) return 1;
+      if (slex_try_match(ctx, SLEX_TOK_minus_eq, "-=", 2)) return 1;
 #if SLEX_ADD_CXX_SUPPORT
-      if(slex_try_match(ctx, SLEX_TOK_arrowstar, "->*", 3)) return 1;
+      if (slex_try_match(ctx, SLEX_TOK_deref_access, "->*", 3)) return 1;
 #endif
       return slex_consume_single_char(ctx, SLEX_TOK_minus);
     case '~':
-      return slex_consume_single_char(ctx, SLEX_TOK_tilde);
+      return slex_consume_single_char(ctx, SLEX_TOK_bitwise_not);
     case '!':
-      if (slex_try_match(ctx, SLEX_TOK_exclaimequal, "!=", 2)) return 1;
-      return slex_consume_single_char(ctx, SLEX_TOK_exclaim);
+      if (slex_try_match(ctx, SLEX_TOK_not_eq, "!=", 2)) return 1;
+      return slex_consume_single_char(ctx, SLEX_TOK_not);
     case '/':
-      if (slex_try_match(ctx, SLEX_TOK_slashequal, "/=", 2)) return 1;
-      return slex_consume_single_char(ctx, SLEX_TOK_slash);
+      if (slex_try_match(ctx, SLEX_TOK_div_eq, "/=", 2)) return 1;
+      return slex_consume_single_char(ctx, SLEX_TOK_div);
     case '%':
-      if (slex_try_match(ctx, SLEX_TOK_percentequal, "%=", 2)) return 1;
-      return slex_consume_single_char(ctx, SLEX_TOK_percent);
+      if (slex_try_match(ctx, SLEX_TOK_mod_eq, "%=", 2)) return 1;
+      return slex_consume_single_char(ctx, SLEX_TOK_mod);
     case '<':
       if (slex_try_match(ctx, SLEX_TOK_spaceship, "<=>", 3)) return 1;
-      if (slex_try_match(ctx, SLEX_TOK_lesslessequal, "<<=", 3)) return 1;
-      if (slex_try_match(ctx, SLEX_TOK_lessequal, "<=", 2)) return 1;
-      if (slex_try_match(ctx, SLEX_TOK_lessless, "<<", 2)) return 1;
+      if (slex_try_match(ctx, SLEX_TOK_shl_eq, "<<=", 3)) return 1;
+      if (slex_try_match(ctx, SLEX_TOK_less_or_eq, "<=", 2)) return 1;
+      if (slex_try_match(ctx, SLEX_TOK_shl, "<<", 2)) return 1;
       return slex_consume_single_char(ctx, SLEX_TOK_less);
     case '>':
-      if (slex_try_match(ctx, SLEX_TOK_greatergreaterequal, ">>=", 3)) return 1;
-      if (slex_try_match(ctx, SLEX_TOK_greaterequal, ">=", 2)) return 1;
-      if (slex_try_match(ctx, SLEX_TOK_greatergreater, ">>", 2)) return 1;
+      if (slex_try_match(ctx, SLEX_TOK_shr_eq, ">>=", 3)) return 1;
+      if (slex_try_match(ctx, SLEX_TOK_greater_or_eq, ">=", 2)) return 1;
+      if (slex_try_match(ctx, SLEX_TOK_shr, ">>", 2)) return 1;
       return slex_consume_single_char(ctx, SLEX_TOK_greater);
     case '^':
-      if (slex_try_match(ctx, SLEX_TOK_caretequal, "^=", 2)) return 1;
-      return slex_consume_single_char(ctx, SLEX_TOK_caret);
+      if (slex_try_match(ctx, SLEX_TOK_xor_eq, "^=", 2)) return 1;
+      return slex_consume_single_char(ctx, SLEX_TOK_xor);
     case '|':
-      if (slex_try_match(ctx, SLEX_TOK_pipepipe, "||", 2)) return 1;
-      if (slex_try_match(ctx, SLEX_TOK_pipeequal, "|=", 2)) return 1;
-      return slex_consume_single_char(ctx, SLEX_TOK_pipe);
+      if (slex_try_match(ctx, SLEX_TOK_or, "||", 2)) return 1;
+      if (slex_try_match(ctx, SLEX_TOK_bitwise_or_eq, "|=", 2)) return 1;
+      return slex_consume_single_char(ctx, SLEX_TOK_bitwise_or);
     case '?':
-      return slex_consume_single_char(ctx, SLEX_TOK_question);
+      return slex_consume_single_char(ctx, SLEX_TOK_questionmark);
     case ':':
 #if SLEX_ADD_CXX_SUPPORT
-      if (slex_try_match(ctx, SLEX_TOK_coloncolon, "::", 2)) return 1;
+      if (slex_try_match(ctx, SLEX_TOK_scope_resolution, "::", 2)) return 1;
 #endif
       return slex_consume_single_char(ctx, SLEX_TOK_colon);
     case ';':
       return slex_consume_single_char(ctx, SLEX_TOK_semi);
     case '=':
-      if (slex_try_match(ctx, SLEX_TOK_equalequal, "==", 2)) return 1;
-      return slex_consume_single_char(ctx, SLEX_TOK_equal);
+      if (slex_try_match(ctx, SLEX_TOK_equality, "==", 2)) return 1;
+      return slex_consume_single_char(ctx, SLEX_TOK_eq);
     case ',':
       return slex_consume_single_char(ctx, SLEX_TOK_comma);
     case '#':
-      if (slex_try_match(ctx, SLEX_TOK_hashhash, "##", 2)) return 1;
-      if (slex_try_match(ctx, SLEX_TOK_hashat, "#@", 2)) return 1;
-      return slex_consume_single_char(ctx, SLEX_TOK_hash);
+      if (slex_try_match(ctx, SLEX_TOK_concat, "##", 2)) return 1;
+      if (slex_try_match(ctx, SLEX_TOK_preprocessor_at, "#@", 2)) return 1;
+      return slex_consume_single_char(ctx, SLEX_TOK_preprocessor);
     default:
       return 0; // Not a punctuator
   }
@@ -408,7 +408,7 @@ static int slex_skip(SlexContext *ctx) {
 }
 
 static int slex_parse_ident(SlexContext *ctx) {
-  ctx->tok_ty = SLEX_TOK_identefier;
+  ctx->tok_ty = SLEX_TOK_identifier;
   ctx->first_tok_char = ctx->parse_point;
 
   while(ctx->parse_point < ctx->stream_end) {
@@ -508,7 +508,7 @@ static int slex_parse_int_lit(SlexContext *ctx) {
     ctx->parse_point = end;
     ctx->last_tok_char = end - 1;
 #if SLEX_PARSE_INT_SUFFIXES
-  slex_parse_int_suffix(ctx);
+    slex_parse_int_suffix(ctx);
 #endif
     return 1;
   }
@@ -547,7 +547,7 @@ static int slex_parse_int_lit(SlexContext *ctx) {
     ctx->parse_point = end;
     ctx->last_tok_char = end - 1;
 #if SLEX_PARSE_INT_SUFFIXES
-  slex_parse_int_suffix(ctx);
+    slex_parse_int_suffix(ctx);
 #endif
     return 1;
   }
@@ -592,7 +592,7 @@ static int slex_parse_int_lit(SlexContext *ctx) {
     ctx->parse_point = end;
     ctx->last_tok_char = end - 1;
 #if SLEX_PARSE_INT_SUFFIXES
-  slex_parse_int_suffix(ctx);
+    slex_parse_int_suffix(ctx);
 #endif
     return 1;
   }
@@ -769,7 +769,7 @@ int slex_get_next_token(SlexContext *ctx) {
   if(*ctx->parse_point == '"' || *ctx->parse_point == '\'')
     return slex_parse_char_or_str_lit(ctx);
 
-  // identefiers
+  // identifier
   if(slex_is_ident(*ctx->parse_point)) 
     return slex_parse_ident(ctx);
 

@@ -76,11 +76,3 @@ int main(int argc, char** argv) {
 ## License
 
 This project is licensed under the MIT License. 
-
-### Attribution
-
-This project includes code from the LLVM project, which is licensed under the Apache License 2.0. The specific code copied includes a list of token names. 
-
-Apache License 2.0 text can be found in the `LICENSE-APACHE-2.0` file.
-
-For more information, see the [LLVM Project](https://llvm.org/).
