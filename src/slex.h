@@ -18,7 +18,16 @@
 #define SLEX_PARSE_INT_SUFFIXES 1
 #endif
 
+// Whether to skip the current line when # is encountered.
+#ifndef SLEX_SKIP_PREPROCESSOR
+#define SLEX_SKIP_PREPROCESSOR 0
+#endif
+
 typedef enum {
+  SLEX_ERR_unknown_tok,      // Token unrecognised
+  SLEX_ERR_parse,            // Token recognised, but contains an error 
+  SLEX_ERR_storage,          // Not enough storage for token (int literal to big, string larger than string store, ...)
+
   SLEX_TOK_eof,              // End of File (returned when SLEX_END_IS_TOKEN is enabled)
   SLEX_TOK_str_lit,          // String Literal ("hello, world\n", "abc\0", ...)
   SLEX_TOK_char_lit,         // Character Literal ('h', 'hello', '\x5f', ...)
@@ -81,12 +90,6 @@ typedef enum {
 #endif
 } TokenType;
 
-typedef enum {
-  SLEX_ERR_unknown_tok,
-  SLEX_ERR_parse,
-  SLEX_ERR_storage,
-} ErrorType;
-
 typedef struct {
   char *parse_point;
   char *stream_end;
@@ -105,50 +108,49 @@ typedef struct {
 extern "C" {
 #endif
 
-  // Description:
-  // - This function initializes the SlexContext struct.
-  // Parameters:
-  // - context: The struct to be initialized.
-  // - stream_start: Pointer to the first character in the stream.
-  // - stream_end: Pointer to the character just past the last character in the stream (or to EOF).
-  // - string_store: Pointer to the storage used for parsing strings.
-  // - string_store_len: Specifies the length of string_store.
-  void slex_init_context(SlexContext *context, char *stream_start, char *stream_end, char* string_store, int string_store_len);
+// Description:
+// - This function initializes the SlexContext struct.
+// Parameters:
+// - context: The struct to be initialized.
+// - stream_start: Pointer to the first character in the stream.
+// - stream_end: Pointer to the character just past the last character in the stream (or to EOF).
+// - string_store: Pointer to the storage used for parsing strings.
+// - string_store_len: Specifies the length of string_store.
+void slex_init_context(SlexContext *context, char *stream_start, char *stream_end, char* string_store, int string_store_len);
 
-  // Description:
-  // - This function parses a token and advances context->parse_ptr.
-  // Parameters:
-  // - context: The context needed for tokenizing.
-  // Returns:
-  // - Returns 1 if a token was parsed successfully; otherwise, returns a non-zero value.
-  int slex_get_next_token(SlexContext *context);
+// Description:
+// - This function parses a token and advances context->parse_ptr.
+// Parameters:
+// - context: The context needed for tokenizing.
+// Returns:
+// - Returns 1 if a token was parsed successfully; otherwise, returns a non-zero value.
+int slex_get_next_token(SlexContext *context);
 
-  // Description:
-  // - This function retrieves the location of the last token.
-  // Parameters:
-  // - context: The parsing context.
-  // - stream_begin: Pointer to the location from where the lines and columns are counted.
-  // - line_num: Output pointer for the line number.
-  // - col_num: Output pointer for the column number.
-  void slex_get_token_location(SlexContext *context, char *stream_begin, int *line_num, int *col_num);
+// Description:
+// - This function retrieves the location of the last token.
+// Parameters:
+// - context: The parsing context.
+// - stream_begin: Pointer to the location from where the lines and columns are counted.
+// - line_num: Output pointer for the line number.
+// - col_num: Output pointer for the column number.
+void slex_get_token_location(SlexContext *context, char *stream_begin, int *line_num, int *col_num);
 
-  // Description:
-  // - This function returns the current location of the parsing point.
-  //   In the event of an error, the parsing point is updated to indicate the error's location.
-  //   Therefore, this function can also be used to identify the location of any errors that occur.
-  // Parameters:
-  // - context: The parsing context.
-  // - stream_begin: Pointer to the location from where the lines and columns are counted.
-  // - line_num: Output pointer for the line number.
-  // - col_num: Output pointer for the column number.
-  void slex_get_parse_ptr_location(SlexContext *context, char *stream_begin, int *line_num, int *col_num);
+// Description:
+// - This function returns the current location of the parsing point.
+//   In the event of an error, the parsing point is updated to indicate the error's location.
+//   Therefore, this function can also be used to identify the location of any errors that occur.
+// Parameters:
+// - context: The parsing context.
+// - stream_begin: Pointer to the location from where the lines and columns are counted.
+// - line_num: Output pointer for the line number.
+// - col_num: Output pointer for the column number.
+void slex_get_parse_ptr_location(SlexContext *context, char *stream_begin, int *line_num, int *col_num);
 
 #ifdef __cplusplus
 }
 #endif
 
 #ifdef SLEX_IMPLEMENTATION
-// TODO: preprocessor directives, more config options
 
 static int slex_is_numeric(char c) {
   return c >= '0' && c <= '9';
@@ -179,7 +181,7 @@ static int slex_is_ident(char c) {
     (c >= 'a' && c <= 'z') || c == '_';
 }
 
-static int slex_return_err(ErrorType err_ty, SlexContext *ctx) {
+static int slex_return_err(int err_ty, SlexContext *ctx) {
   ctx->last_tok_char = ctx->parse_point;
   ctx->tok_ty = err_ty;
   return 0;
@@ -370,14 +372,35 @@ static int slex_parse_punctuator(SlexContext *ctx) {
 
 static int slex_skip(SlexContext *ctx) {
   while(ctx->parse_point < ctx->stream_end) {
-    // whitespace
-    while(ctx->parse_point < ctx->stream_end) {
-      if(!slex_is_whitespace(*ctx->parse_point)) break;
+    // preprocessor
+#if SLEX_SKIP_PREPROCESSOR
+    if(*ctx->parse_point == '#') {
+      while(ctx->parse_point < ctx->stream_end) {
+        if(*ctx->parse_point == '\n') break;
+        ctx->parse_point++;
+      }
       ctx->parse_point++;
+      continue;
     }
-    // comments
-    if(ctx->parse_point > ctx->stream_end - 2) break;
+#endif
+    // whitespace
+    if(slex_is_whitespace(*ctx->parse_point)) {
+      while(ctx->parse_point < ctx->stream_end) {
+        if(!slex_is_whitespace(*ctx->parse_point)) break;
+        ctx->parse_point++;
+      }
+      continue;
+    }
 
+    // is last char
+    if(ctx->parse_point >= ctx->stream_end - 1) {
+#if SLEX_SKIP_PREPROCESSOR
+      if(*ctx->parse_point == '#') ctx->parse_point++;
+#endif
+      break;
+    }
+
+    // comments
     if(*ctx->parse_point == '/' && ctx->parse_point[1] == '/') {
       ctx->parse_point += 2; // skip //
       while(ctx->parse_point < ctx->stream_end) {
@@ -385,6 +408,7 @@ static int slex_skip(SlexContext *ctx) {
         ctx->parse_point++;
       }
       ctx->parse_point++;
+      continue;
     }
     else if(*ctx->parse_point == '/' && ctx->parse_point[1] == '*') {
       ctx->parse_point += 2;
@@ -401,8 +425,9 @@ static int slex_skip(SlexContext *ctx) {
       }
       if(!terminated)
         return slex_return_err(SLEX_ERR_parse, ctx);
+      continue;
     }
-    else break;
+    else break; // Neither whitespace nor comments nor preprocessor
   }
   return 1;
 }
