@@ -25,6 +25,8 @@
 #ifndef SLEX_H
 #define SLEX_H
 
+// TODO: floats, improve int suffixes, int parsing rework, error handling rework
+
 /* CONFIG */
 
 // Whether to return SLEX_TOK_eof when at the end.
@@ -50,12 +52,13 @@
 typedef enum {
   SLEX_ERR_unknown_tok,      // Token unrecognised
   SLEX_ERR_parse,            // Token recognised, but contains an error 
-  SLEX_ERR_storage,          // Not enough storage for token (int literal to big, string larger than string store, ...)
+  SLEX_ERR_storage,          // Not enough storage for token (int literal too big, string larger than string store, ...)
 
   SLEX_TOK_eof,              // End of File (returned when SLEX_END_IS_TOKEN is enabled)
   SLEX_TOK_str_lit,          // String Literal ("hello, world\n", "abc\0", ...)
   SLEX_TOK_char_lit,         // Character Literal ('h', 'hello', '\x5f', ...)
   SLEX_TOK_int_lit,          // Integer Literal (0x12, 123, 030, 0b111, ...)
+  SLEX_TOK_float_lit,        // Float Literal (0.12, 12.1111, ...)
   SLEX_TOK_identifier,       // Identifier (foo, bar, ...)
   SLEX_TOK_l_square_paren,   // Left Square Bracket ([)
   SLEX_TOK_r_square_paren,   // Right Square Bracket (])
@@ -125,6 +128,7 @@ typedef struct {
   char *last_tok_char;
   int str_len;
   unsigned long long parsed_int_lit;
+  double parsed_float_lit;
 
 } SlexContext;
 
