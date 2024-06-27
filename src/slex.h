@@ -67,7 +67,7 @@ typedef enum {
   SLEX_TOK_l_brace,          // Left Brace ({)
   SLEX_TOK_r_brace,          // Right Brace (})
   SLEX_TOK_period,           // Period (.)
-  SLEX_TOK_ellipsis,         // Ellipsis (...)
+  SLEX_TOK_unpack,           // Unpack (...)
   SLEX_TOK_bitwise_and,      // Bitwise AND (&)
   SLEX_TOK_and,              // Logical AND (&&)
   SLEX_TOK_bitwise_and_eq,   // Bitwise AND Assignment (&=)
@@ -103,12 +103,12 @@ typedef enum {
   SLEX_TOK_bitwise_or_eq,    // Bitwise OR Assignment (|=)
   SLEX_TOK_questionmark,     // Question Mark (?)
   SLEX_TOK_colon,            // Colon (:)
-  SLEX_TOK_semi,             // Semicolon (;)
+  SLEX_TOK_semicolon,        // Semicolon (;)
   SLEX_TOK_assign,           // Assignment (=)
   SLEX_TOK_equality,         // Equality (==)
   SLEX_TOK_comma,            // Comma (,)
   SLEX_TOK_preprocessor,     // Preprocessor (#)
-  SLEX_TOK_concat,           // Token Concatenation (##)
+  SLEX_TOK_token_concat,     // Token Concatenation (##)
   SLEX_TOK_preprocessor_at,  // Preprocessor At (#@)
 #if SLEX_ADD_CXX_SUPPORT
   SLEX_TOK_member_access,    // Member Access via Pointer to Member (.*)
@@ -322,7 +322,7 @@ static int slex_parse_punctuator(SlexContext *ctx) {
     case '}':
       return slex_consume_single_char(ctx, SLEX_TOK_r_brace);
     case '.':
-      if (slex_try_match(ctx, SLEX_TOK_ellipsis, "...", 3)) return 1;
+      if (slex_try_match(ctx, SLEX_TOK_unpack, "...", 3)) return 1;
 #if SLEX_ADD_CXX_SUPPORT
       if (slex_try_match(ctx, SLEX_TOK_member_access, ".*", 2)) return 1;
 #endif
@@ -383,14 +383,14 @@ static int slex_parse_punctuator(SlexContext *ctx) {
 #endif
       return slex_consume_single_char(ctx, SLEX_TOK_colon);
     case ';':
-      return slex_consume_single_char(ctx, SLEX_TOK_semi);
+      return slex_consume_single_char(ctx, SLEX_TOK_semicolon);
     case '=':
       if (slex_try_match(ctx, SLEX_TOK_equality, "==", 2)) return 1;
       return slex_consume_single_char(ctx, SLEX_TOK_assign);
     case ',':
       return slex_consume_single_char(ctx, SLEX_TOK_comma);
     case '#':
-      if (slex_try_match(ctx, SLEX_TOK_concat, "##", 2)) return 1;
+      if (slex_try_match(ctx, SLEX_TOK_token_concat, "##", 2)) return 1;
       if (slex_try_match(ctx, SLEX_TOK_preprocessor_at, "#@", 2)) return 1;
       return slex_consume_single_char(ctx, SLEX_TOK_preprocessor);
     default:
