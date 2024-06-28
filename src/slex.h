@@ -25,7 +25,13 @@
 #ifndef SLEX_H
 #define SLEX_H
 
-// TODO: floats, improve int suffixes, int parsing rework, error handling rework
+typedef unsigned long      slex_u32;
+typedef long               slex_i32;
+typedef unsigned long long slex_u64;
+typedef long long          slex_i64;
+typedef int                slex_bool;
+
+// TODO: floats
 
 /* CONFIG */
 
@@ -35,13 +41,13 @@
 #endif
 
 // Whether to add support for some CXX specific tokens.
-#ifndef SLEX_ADD_CXX_SUPPORT
-#define SLEX_ADD_CXX_SUPPORT 1
+#ifndef SLEX_CXX_SUPPORT
+#define SLEX_CXX_SUPPORT 1
 #endif
 
 // Whether to parse int suffixes as a part of the token.
-#ifndef SLEX_PARSE_INT_SUFFIXES
-#define SLEX_PARSE_INT_SUFFIXES 1
+#ifndef SLEX_INT_SUFFIXES
+#define SLEX_INT_SUFFIXES 1
 #endif
 
 // Whether to skip the current line when # is encountered.
@@ -110,7 +116,7 @@ typedef enum {
   SLEX_TOK_preprocessor,     // Preprocessor (#)
   SLEX_TOK_token_concat,     // Token Concatenation (##)
   SLEX_TOK_preprocessor_at,  // Preprocessor At (#@)
-#if SLEX_ADD_CXX_SUPPORT
+#if SLEX_CXX_SUPPORT
   SLEX_TOK_member_access,    // Member Access via Pointer to Member (.*)
   SLEX_TOK_deref_access,     // Dereference Access via Pointer to Member (->*)
   SLEX_TOK_scope_resolution, // Scope Resolution (::)
@@ -180,15 +186,16 @@ void slex_get_parse_ptr_location(SlexContext *context, char *stream_begin, int *
 
 #ifdef SLEX_IMPLEMENTATION
 
-static int slex_is_numeric(char c) {
+
+static slex_bool slex_is_numeric(char c) {
   return c >= '0' && c <= '9';
 }
 
-static int slex_is_oct(char c) {
+static slex_bool slex_is_oct(char c) {
   return c >= '0' && c <= '7';
 }
 
-static int slex_is_hex(char c) {
+static slex_bool slex_is_hex(char c) {
   return slex_is_numeric(c) || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f');
 }
 
@@ -199,44 +206,44 @@ static int slex_hex_to_int(char c) {
   return -1;
 }
 
-static int slex_is_whitespace(char c) {
+static slex_bool slex_is_whitespace(char c) {
   return c == ' '  || c == '\t' || c == '\n' || c == '\v' || 
     c == '\f' || c == '\r';
 }
 
-static int slex_is_ident(char c) {
+static slex_bool slex_is_ident(char c) {
   return slex_is_numeric(c) || (c >= 'A' && c <= 'Z') ||
     (c >= 'a' && c <= 'z') || c == '_';
 }
 
-static int slex_return_err(int err_ty, SlexContext *ctx) {
+static slex_bool slex_return_err(int err_ty, SlexContext *ctx) {
   ctx->last_tok_char = ctx->parse_point;
   ctx->tok_ty = err_ty;
   return 0;
 }
 
 static void slex_parse_int_suffix(SlexContext *ctx) {
+  // TODO: suffix rework
   while(ctx->parse_point < ctx->stream_end) {
     char c = *ctx->parse_point;
-    if(!(c >= 'a' && c <= 'z') && !(c >= 'A' && c <= 'Z'))
-      break;
+    if(!(c >= 'a' && c <= 'z') && !(c >= 'A' && c <= 'Z')) break;
     ctx->parse_point++;
   }
   ctx->last_tok_char = ctx->parse_point - 1;
 }
 
-static int slex_return_eof(SlexContext *ctx) {
+static slex_bool slex_return_eof(SlexContext *ctx) {
 #if SLEX_END_IS_TOKEN
   ctx->tok_ty = SLEX_TOK_eof;
   ctx->first_tok_char = ctx->stream_end;
   ctx->last_tok_char = ctx->stream_end;
   return 1;
 #else
-  return slex_return_err(ctx);
+  return slex_return_err(SLEX_ERR_unknown_tok, ctx);
 #endif
 }
 
-static int slex_consume_single_char(SlexContext *ctx, TokenType ty)  {
+static slex_bool slex_consume_single_char(SlexContext *ctx, TokenType ty)  {
   ctx->tok_ty = ty;
   ctx->first_tok_char = ctx->parse_point;
   ctx->last_tok_char = ctx->first_tok_char;
@@ -244,7 +251,7 @@ static int slex_consume_single_char(SlexContext *ctx, TokenType ty)  {
   return 1;
 }
 
-static int slex_try_match(SlexContext *ctx, TokenType match_ty, char *tok, int tok_len) {
+static slex_bool slex_try_match(SlexContext *ctx, TokenType match_ty, char *tok, int tok_len) {
   if (ctx->parse_point > ctx->stream_end - tok_len) 
     return 0;
 
@@ -261,16 +268,16 @@ static int slex_try_match(SlexContext *ctx, TokenType match_ty, char *tok, int t
   return 1;
 }
 
-static int slex_mul_overflows_u64(unsigned long long a, unsigned long long b) {
+static slex_bool slex_mul_overflows_u64(slex_u64 a, slex_u64 b) {
   if(a == 0 || b == 0) return 0;
   return a > 0xFFFFFFFFFFFFFFFF / b;
 }
 
-static int slex_add_overflows_u64(unsigned long long a, unsigned long long b) {
+static slex_bool slex_add_overflows_u64(slex_u64 a, slex_u64 b) {
   return a > 0xFFFFFFFFFFFFFFFF - b;
 }
 
-static int slex_utf8_encode_esc_seq(SlexContext *ctx, long long codepoint, char *loc) {
+static int slex_utf8_encode_esc_seq(SlexContext *ctx, slex_i32 codepoint, char *loc) {
   if (codepoint > 0x10FFFF || loc >= ctx->string_store + ctx->string_store_len)
     return slex_return_err(SLEX_ERR_storage, ctx) -1;
 
@@ -307,7 +314,7 @@ static int slex_utf8_encode_esc_seq(SlexContext *ctx, long long codepoint, char 
   }
 }
 
-static int slex_parse_punctuator(SlexContext *ctx) {
+static slex_bool slex_parse_punctuator(SlexContext *ctx) {
   switch (*ctx->parse_point) {
     case '[':
       return slex_consume_single_char(ctx, SLEX_TOK_l_square_paren);
@@ -323,7 +330,7 @@ static int slex_parse_punctuator(SlexContext *ctx) {
       return slex_consume_single_char(ctx, SLEX_TOK_r_brace);
     case '.':
       if (slex_try_match(ctx, SLEX_TOK_unpack, "...", 3)) return 1;
-#if SLEX_ADD_CXX_SUPPORT
+#if SLEX_CXX_SUPPORT
       if (slex_try_match(ctx, SLEX_TOK_member_access, ".*", 2)) return 1;
 #endif
       return slex_consume_single_char(ctx, SLEX_TOK_period);
@@ -342,7 +349,7 @@ static int slex_parse_punctuator(SlexContext *ctx) {
       if (slex_try_match(ctx, SLEX_TOK_arrow, "->", 2)) return 1;
       if (slex_try_match(ctx, SLEX_TOK_dec, "--", 2)) return 1;
       if (slex_try_match(ctx, SLEX_TOK_minus_eq, "-=", 2)) return 1;
-#if SLEX_ADD_CXX_SUPPORT
+#if SLEX_CXX_SUPPORT
       if (slex_try_match(ctx, SLEX_TOK_deref_access, "->*", 3)) return 1;
 #endif
       return slex_consume_single_char(ctx, SLEX_TOK_minus);
@@ -378,7 +385,7 @@ static int slex_parse_punctuator(SlexContext *ctx) {
     case '?':
       return slex_consume_single_char(ctx, SLEX_TOK_questionmark);
     case ':':
-#if SLEX_ADD_CXX_SUPPORT
+#if SLEX_CXX_SUPPORT
       if (slex_try_match(ctx, SLEX_TOK_scope_resolution, "::", 2)) return 1;
 #endif
       return slex_consume_single_char(ctx, SLEX_TOK_colon);
@@ -398,7 +405,7 @@ static int slex_parse_punctuator(SlexContext *ctx) {
   }
 }
 
-static int slex_skip(SlexContext *ctx) {
+static slex_bool slex_skip(SlexContext *ctx) {
   while(ctx->parse_point < ctx->stream_end) {
     // preprocessor
 #if SLEX_SKIP_PREPROCESSOR
@@ -420,7 +427,6 @@ static int slex_skip(SlexContext *ctx) {
       continue;
     }
 
-    // is last char
     if(ctx->parse_point >= ctx->stream_end - 1) {
 #if SLEX_SKIP_PREPROCESSOR
       if(*ctx->parse_point == '#') ctx->parse_point++;
@@ -440,7 +446,7 @@ static int slex_skip(SlexContext *ctx) {
     }
     else if(*ctx->parse_point == '/' && ctx->parse_point[1] == '*') {
       ctx->parse_point += 2;
-      int terminated = 0;
+      slex_bool terminated = 0;
       while(ctx->parse_point < ctx->stream_end) {
         if(*ctx->parse_point == '*' 
             && ctx->parse_point <= ctx->stream_end - 2
@@ -455,12 +461,12 @@ static int slex_skip(SlexContext *ctx) {
         return slex_return_err(SLEX_ERR_parse, ctx);
       continue;
     }
-    else break; // Neither whitespace nor comments nor preprocessor
+    else break;
   }
   return 1;
 }
 
-static int slex_parse_ident(SlexContext *ctx) {
+static slex_bool slex_parse_ident(SlexContext *ctx) {
   ctx->tok_ty = SLEX_TOK_identifier;
   ctx->first_tok_char = ctx->parse_point;
 
@@ -473,49 +479,32 @@ static int slex_parse_ident(SlexContext *ctx) {
   return 1;
 }
 
-static int slex_parse_num(SlexContext *ctx) {
-  char *end = ctx->parse_point;
-  unsigned long long fact = 0;
-  while(end < ctx->stream_end) {
-    if(!slex_is_numeric(*end)) break;
-
-    if(slex_mul_overflows_u64(fact, 10)) {
-      ctx->parse_point = end;
-      return slex_return_err(SLEX_ERR_storage, ctx);
-    }
-    end++;
-    if(fact != 0) fact *= 10;
-    else fact = 1;
-  }
-
-  unsigned long long num = 0;
-
-  for(char *it = ctx->parse_point; it < end; it++) {
-    unsigned long long n = (*it - '0') * fact;
-
-    if(slex_add_overflows_u64(n, num)) {
-      ctx->parse_point = it;
-      return slex_return_err(SLEX_ERR_storage, ctx);
-    }
-    num += n;
-    fact /= 10;
-  }
-  ctx->parsed_int_lit = num;
-  ctx->parse_point = end;
-  ctx->last_tok_char = end - 1;
-
-#if SLEX_PARSE_INT_SUFFIXES
-  slex_parse_int_suffix(ctx);
-#endif
-  return 1;
-}
-
-static int slex_parse_int_lit(SlexContext *ctx) {
+static slex_bool slex_parse_int_lit(SlexContext *ctx) {
   ctx->first_tok_char = ctx->parse_point;
   ctx->tok_ty = SLEX_TOK_int_lit;
 
-  if(*ctx->parse_point != '0') 
-    return slex_parse_num(ctx);
+  if(*ctx->parse_point != '0') {
+    slex_u64 num = 0;
+    while(ctx->parse_point < ctx->stream_end) {
+      if(!slex_is_numeric(*ctx->parse_point)) break;
+
+      int n = *ctx->parse_point - '0';
+
+      if(slex_mul_overflows_u64(num, 10) || slex_add_overflows_u64(num * 10, n)) 
+        return slex_return_err(SLEX_ERR_storage, ctx);
+
+      num *= 10;
+      num += n;
+      ctx->parse_point++;
+    }
+    ctx->parsed_int_lit = num;
+    ctx->last_tok_char = ctx->parse_point - 1;
+
+#if SLEX_INT_SUFFIXES
+    slex_parse_int_suffix(ctx);
+#endif
+    return 1;
+  }
 
   // the current char is the last one
   if(ctx->parse_point >= ctx->stream_end - 1) goto zero;
@@ -527,40 +516,23 @@ static int slex_parse_int_lit(SlexContext *ctx) {
     if(ctx->parse_point >= ctx->stream_end) 
       return slex_return_err(SLEX_ERR_parse, ctx);
 
-    char *end = ctx->parse_point;
-    unsigned long long fact = 0;
+    slex_u64 hex = 0;
+    while(ctx->parse_point < ctx->stream_end) {
+      if(!slex_is_hex(*ctx->parse_point)) break;
 
-    while(end < ctx->stream_end) {
-      if(!slex_is_hex(*end)) break;
+      int h = slex_hex_to_int(*ctx->parse_point);
 
-      if(slex_mul_overflows_u64(fact, 16)) {
-        ctx->parse_point = end;
+      if(slex_mul_overflows_u64(hex, 16) || slex_add_overflows_u64(hex * 16, h)) 
         return slex_return_err(SLEX_ERR_storage, ctx);
-      }
-      end++;
-      if(fact != 0) fact *= 16;
-      else fact = 1;
-    }
 
-    if(end - ctx->parse_point == 0) 
-      return slex_return_err(SLEX_ERR_parse, ctx);
-
-    unsigned long long hex = 0;
-
-    for(char *it = ctx->parse_point; it < end; it++) {
-      unsigned long long h = slex_hex_to_int(*it) * fact;
-      if(slex_add_overflows_u64(h, hex)) {
-        ctx->parse_point = it;
-        return slex_return_err(SLEX_ERR_storage, ctx);
-      }
+      hex *= 16;
       hex += h;
-      fact /= 16;
+      ctx->parse_point++;
     }
-
     ctx->parsed_int_lit = hex;
-    ctx->parse_point = end;
-    ctx->last_tok_char = end - 1;
-#if SLEX_PARSE_INT_SUFFIXES
+    ctx->last_tok_char = ctx->parse_point - 1;
+
+#if SLEX_INT_SUFFIXES
     slex_parse_int_suffix(ctx);
 #endif
     return 1;
@@ -568,38 +540,22 @@ static int slex_parse_int_lit(SlexContext *ctx) {
 
   // octals
   if(slex_is_numeric(ctx->parse_point[1])) {
-    char *end = ctx->parse_point;
-    unsigned long long fact = 0;
+    slex_u64 oct = 0;
+    while(ctx->parse_point < ctx->stream_end) {
+      if(!slex_is_oct(*ctx->parse_point)) break;
 
-    while(end < ctx->stream_end) {
-      if(!slex_is_oct(*end)) break;
+      int o = *ctx->parse_point - '0';
 
-      if(slex_mul_overflows_u64(fact, 8)) {
-        ctx->parse_point = end;
+      if(slex_mul_overflows_u64(oct, 8) || slex_add_overflows_u64(oct * 8, o)) 
         return slex_return_err(SLEX_ERR_storage, ctx);
-      }
-      end++;
-      if(fact != 0) fact *= 8;
-      else fact = 1;
-    }
 
-    unsigned long long oct = 0;
-
-    for(char *it = ctx->parse_point; it < end; it++) {
-      unsigned long long o = (*it - '0') * fact;
-
-      if(slex_add_overflows_u64(o, oct)) {
-        ctx->parse_point = it;
-        return slex_return_err(SLEX_ERR_storage, ctx);
-      }
+      oct *= 8;
       oct += o;
-      fact /= 8;
+      ctx->parse_point++;
     }
-
     ctx->parsed_int_lit = oct;
-    ctx->parse_point = end;
-    ctx->last_tok_char = end - 1;
-#if SLEX_PARSE_INT_SUFFIXES
+    ctx->last_tok_char = ctx->parse_point - 1;
+#if SLEX_INT_SUFFIXES
     slex_parse_int_suffix(ctx);
 #endif
     return 1;
@@ -611,40 +567,22 @@ static int slex_parse_int_lit(SlexContext *ctx) {
     if(ctx->parse_point >= ctx->stream_end) 
       return slex_return_err(SLEX_ERR_parse, ctx);
 
-    char *end = ctx->parse_point;
-    unsigned long long fact = 0;
+    slex_u64 bin = 0;
+    while(ctx->parse_point < ctx->stream_end) {
+      if(*ctx->parse_point != '0' && *ctx->parse_point != '1') break;
 
-    while(end < ctx->stream_end) {
-      if(*end != '0' && *end != '1') break;
+      int b = *ctx->parse_point - '0';
 
-      if(slex_mul_overflows_u64(fact, 2)) {
-        ctx->parse_point = end;
+      if(slex_mul_overflows_u64(b, 2) || slex_add_overflows_u64(b * 2, b)) 
         return slex_return_err(SLEX_ERR_storage, ctx);
-      }
-      end++;
-      if(fact != 0) fact *= 2;
-      else fact = 1;
-    }
 
-    if(end - ctx->parse_point == 0) 
-      return slex_return_err(SLEX_ERR_parse, ctx);
-
-    unsigned long long bin = 0;
-
-    for(char *it = ctx->parse_point; it < end; it++) {
-      unsigned long long b = (*it - '0') * fact;
-      if(slex_add_overflows_u64(b, bin)) {
-        ctx->parse_point = it;
-        return slex_return_err(SLEX_ERR_storage, ctx);
-      }
+      bin *= 2;
       bin += b;
-      fact /= 2;
+      ctx->parse_point++;
     }
-
     ctx->parsed_int_lit = bin;
-    ctx->parse_point = end;
-    ctx->last_tok_char = end - 1;
-#if SLEX_PARSE_INT_SUFFIXES
+    ctx->last_tok_char = ctx->parse_point - 1;
+#if SLEX_INT_SUFFIXES
     slex_parse_int_suffix(ctx);
 #endif
     return 1;
@@ -654,39 +592,28 @@ zero:
   ctx->parsed_int_lit = 0;
   ctx->last_tok_char = ctx->first_tok_char;
   ctx->parse_point++;
-#if SLEX_PARSE_INT_SUFFIXES
+#if SLEX_INT_SUFFIXES
   slex_parse_int_suffix(ctx);
 #endif
   return 1;
 }
 
-static long long slex_parse_esc_seq(SlexContext *ctx) {
+static slex_i32 slex_parse_esc_seq(SlexContext *ctx) {
   ctx->parse_point++; // consume \
 
   if(ctx->parse_point >= ctx->stream_end) 
     return slex_return_err(SLEX_ERR_parse, ctx) -1;
 
   if(slex_is_oct(*ctx->parse_point)) {
-    char *end = ctx->parse_point;
-    int fact = 0;
-    int i = 0;
-
-    while(end < ctx->stream_end) {
-      if(!slex_is_oct(*end) || i == 3) break;
-      end++; i++;
-      if(fact != 0) fact *= 8;
-      else fact = 1;
-    }
-
     int oct = 0;
-
-    for(char *it = ctx->parse_point; it < end; it++) {
-      int o = (*it - '0') * fact;
-      oct += o;
-      fact /= 8;
+    int i = 0;
+    while(ctx->parse_point < ctx->stream_end && i < 3) {
+      if(!slex_is_oct(*ctx->parse_point)) break;
+      oct *= 8;
+      oct += *ctx->parse_point - '0';
+      ctx->parse_point++;
+      i++;
     }
-
-    ctx->parse_point = end;
     return oct;
   }
 
@@ -705,36 +632,22 @@ static long long slex_parse_esc_seq(SlexContext *ctx) {
   }
 
   if(*ctx->parse_point == 'u' || *ctx->parse_point == 'U') {
-    int len = *ctx->parse_point == 'u' ? 4 : 8;
-    ctx->parse_point++; // consume u or U
-
-    if(ctx->parse_point >= ctx->stream_end) 
-      return slex_return_err(SLEX_ERR_parse, ctx);
-
-    char *end = ctx->parse_point;
-    long long fact = 0;
+    slex_i32 codepoint = 0;
     int i = 0;
+    int len = *ctx->parse_point == 'u' ? 4 : 8;
+    ctx->parse_point++;
 
-    while(end < ctx->stream_end && i < len) {
-      if(!slex_is_hex(*end)) break;
-      end++; i++;
-      if(fact != 0) fact *= 16;
-      else fact = 1;
+    while(ctx->parse_point < ctx->stream_end && i < len) {
+      if(!slex_is_hex(*ctx->parse_point)) break;
+      codepoint *= 16;
+      codepoint += slex_hex_to_int(*ctx->parse_point);
+      ctx->parse_point++;
+      i++;
     }
 
-    if(i != len) {
-      ctx->parse_point = end;
+    if(i != len) 
       return slex_return_err(SLEX_ERR_parse, ctx) -1;
-    }
 
-    long long codepoint = 0;
-
-    for(char *it = ctx->parse_point; it < end; it++) {
-      codepoint += slex_hex_to_int(*it) * fact;
-      fact /= 16;
-    }
-
-    ctx->parse_point = end;
     return codepoint;
   }
 
@@ -756,7 +669,7 @@ other_sequence:
   }
 }
 
-static int slex_parse_char_or_str_lit(SlexContext *ctx) {
+static slex_bool slex_parse_char_or_str_lit(SlexContext *ctx) {
   int curr_str_idx = 0;
 
   char delim = *ctx->parse_point;
@@ -777,7 +690,7 @@ static int slex_parse_char_or_str_lit(SlexContext *ctx) {
       return slex_return_err(SLEX_ERR_storage, ctx);
 
     if(*ctx->parse_point == '\\') {
-      long long c = slex_parse_esc_seq(ctx);
+      slex_i32 c = slex_parse_esc_seq(ctx);
       if(c == -1) return 0;
 
       int len = slex_utf8_encode_esc_seq(ctx, c, ctx->string_store + curr_str_idx);
