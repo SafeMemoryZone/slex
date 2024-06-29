@@ -64,7 +64,6 @@ typedef enum {
   SLEX_TOK_str_lit,          // String Literal ("hello, world\n", "abc\0", ...)
   SLEX_TOK_char_lit,         // Character Literal ('h', 'hello', '\x5f', ...)
   SLEX_TOK_int_lit,          // Integer Literal (0x12, 123, 030, 0b111, ...)
-  SLEX_TOK_float_lit,        // Float Literal (0.12, 12.1111, ...)
   SLEX_TOK_identifier,       // Identifier (foo, bar, ...)
   SLEX_TOK_l_square_paren,   // Left Square Bracket ([)
   SLEX_TOK_r_square_paren,   // Right Square Bracket (])
@@ -115,6 +114,7 @@ typedef enum {
   SLEX_TOK_comma,            // Comma (,)
   SLEX_TOK_preprocessor,     // Preprocessor (#)
   SLEX_TOK_token_concat,     // Token Concatenation (##)
+  SLEX_TOK_backslash,        // Backslash used for macros (\)
   SLEX_TOK_preprocessor_at,  // Preprocessor At (#@)
 #if SLEX_CXX_SUPPORT
   SLEX_TOK_member_access,    // Member Access via Pointer to Member (.*)
@@ -134,8 +134,6 @@ typedef struct {
   char *last_tok_char;
   int str_len;
   unsigned long long parsed_int_lit;
-  double parsed_float_lit;
-
 } SlexContext;
 
 #ifdef __cplusplus
@@ -400,6 +398,8 @@ static slex_bool slex_parse_punctuator(SlexContext *ctx) {
       if (slex_try_match(ctx, SLEX_TOK_token_concat, "##", 2)) return 1;
       if (slex_try_match(ctx, SLEX_TOK_preprocessor_at, "#@", 2)) return 1;
       return slex_consume_single_char(ctx, SLEX_TOK_preprocessor);
+    case '\\':
+      return slex_consume_single_char(ctx, SLEX_TOK_backslash);
     default:
       return 0; // Not a punctuator
   }
@@ -412,7 +412,8 @@ static slex_bool slex_skip(SlexContext *ctx) {
     if(*ctx->parse_point == '#') {
       while(ctx->parse_point < ctx->stream_end) {
         if(*ctx->parse_point == '\n') break;
-        ctx->parse_point++;
+        else if(*ctx->parse_point == '\\') ctx->parse_point += 2;
+        else ctx->parse_point++;
       }
       ctx->parse_point++;
       continue;
@@ -427,7 +428,7 @@ static slex_bool slex_skip(SlexContext *ctx) {
       continue;
     }
 
-    if(ctx->parse_point >= ctx->stream_end - 1) {
+    if(ctx->parse_point == ctx->stream_end - 1) {
 #if SLEX_SKIP_PREPROCESSOR
       if(*ctx->parse_point == '#') ctx->parse_point++;
 #endif
@@ -507,7 +508,7 @@ static slex_bool slex_parse_int_lit(SlexContext *ctx) {
   }
 
   // the current char is the last one
-  if(ctx->parse_point >= ctx->stream_end - 1) goto zero;
+  if(ctx->parse_point == ctx->stream_end - 1) goto zero;
 
   // hexadecimals
   if(ctx->parse_point[1] == 'x' || ctx->parse_point[1] == 'X') {
@@ -622,10 +623,12 @@ static slex_i32 slex_parse_esc_seq(SlexContext *ctx) {
       ctx->parse_point++;
       return slex_return_err(SLEX_ERR_parse, ctx) -1;
     }
+
     if(!slex_is_hex(ctx->parse_point[2])) {
       ctx->parse_point += 2;
       return slex_return_err(SLEX_ERR_parse, ctx) -1;
     }
+
     int hex = slex_hex_to_int(ctx->parse_point[1]) * 16 + slex_hex_to_int(ctx->parse_point[2]); 
     ctx->parse_point += 3;
     return hex;

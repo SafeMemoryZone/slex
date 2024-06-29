@@ -4,11 +4,17 @@
 #define SLEX_IMPLEMENTATION
 #include "../src/slex.h"
 
+#define USE_SAMPLE_FILE 1
+
 int main(int argc, char **argv) {
   SlexContext ctx;
   char store[1024];
 
+#if USE_SAMPLE_FILE
+  FILE *f = fopen("sample.c", "rb");
+#else
   FILE *f = fopen("../src/slex.h", "rb");
+#endif
   char *text = (char *)malloc(1 << 20);
   int len = f ? (int)fread(text, 1, 1 << 20, f) : -1;
 
