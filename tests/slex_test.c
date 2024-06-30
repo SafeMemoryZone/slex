@@ -1,20 +1,15 @@
 #include <stdio.h>
 #include <stdlib.h>
-
 #define SLEX_IMPLEMENTATION
 #include "../src/slex.h"
 
-#define USE_SAMPLE_FILE 1
+#define TESTFILE "sample.c"
 
 int main(int argc, char **argv) {
   SlexContext ctx;
   char store[1024];
 
-#if USE_SAMPLE_FILE
-  FILE *f = fopen("sample.c", "rb");
-#else
-  FILE *f = fopen("../src/slex.h", "rb");
-#endif
+  FILE *f = fopen(TESTFILE, "rb");
   char *text = (char *)malloc(1 << 20);
   int len = f ? (int)fread(text, 1, 1 << 20, f) : -1;
 
@@ -50,5 +45,8 @@ int main(int argc, char **argv) {
 
     else if (ctx.tok_ty == SLEX_TOK_int_lit)
       printf("    Extracted int literal: %llu\n", ctx.parsed_int_lit);
+
+    else if (ctx.tok_ty == SLEX_TOK_float_lit)
+      printf("    Extracted float literal: %f\n", ctx.parsed_float_lit);
   }
 }

@@ -39,6 +39,9 @@ int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
 
     else if (ctx.tok_ty == SLEX_TOK_int_lit)
       printf("    Extracted int literal: %llu\n", ctx.parsed_int_lit);
+
+    else if (ctx.tok_ty == SLEX_TOK_float_lit)
+      printf("    Extracted float literal: %f\n", ctx.parsed_float_lit);
 #endif
   }
   return 0;
