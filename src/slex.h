@@ -246,7 +246,7 @@ static slex_bool slex_consume_single_char(SlexContext *ctx, TokenType ty)  {
   return 1;
 }
 
-static slex_bool slex_try_match(SlexContext *ctx, TokenType match_ty, char *tok, int tok_len) {
+static slex_bool slex_try_match(SlexContext *ctx, TokenType match_ty, const char *tok, int tok_len) {
   if (ctx->parse_point > ctx->stream_end - tok_len) 
     return 0;
 
@@ -755,7 +755,6 @@ static slex_i32 slex_parse_esc_seq(SlexContext *ctx) {
     return codepoint;
   }
 
-other_sequence:
   ctx->parse_point++;
   switch(ctx->parse_point[-1]) {
     default: ctx->parse_point--; return slex_return_err(SLEX_ERR_parse, ctx) -1;
@@ -851,7 +850,7 @@ int slex_get_next_token(SlexContext *ctx) {
   return slex_return_err(SLEX_ERR_unknown_tok, ctx);
 }
 
-void slex_get_token_location(SlexContext *ctx, char *stream_begin, int *line_num, int *col_num) {
+void slex_get_token_location(const SlexContext *ctx, char *stream_begin, int *line_num, int *col_num) {
   int ln = 1;
   int col = 1;
 
@@ -867,7 +866,7 @@ void slex_get_token_location(SlexContext *ctx, char *stream_begin, int *line_num
   *col_num = col;
 }
 
-void slex_get_parse_ptr_location(SlexContext *ctx, char *stream_begin, int *line_num, int *col_num) {
+void slex_get_parse_ptr_location(const SlexContext *ctx, char *stream_begin, int *line_num, int *col_num) {
   int ln = 1;
   int col = 1;
 

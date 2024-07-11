@@ -46,6 +46,7 @@ int main(int argc, char** argv) {
      ctx.last_tok_char: pointer to the last character in a token
      ctx.str_len: if a string or character literal was parsed, it holds the length in bytes
      ctx.parsed_int_lit: if an integer literal was parsed, it holds the parsed integer value (excluding the '-')
+     ctx.parsed_float_lit: if a float literal was parsed, it holds the parsed float value (excluding the '-')
   */
   SlexContext ctx;
 
